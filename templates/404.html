@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>404 - Page Not Found</title>
+
+    <!-- Favicon (Logo) -->
+    <link rel="icon" href="redlogo.png" type="image/png">
+
+    <!-- Google Fonts (Roboto for Clean, Consistent Typography) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Main Styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styling for a Centered, Professional Look */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #3a3a3a; /* Dark grey background */
+            color: #f0f0f0; /* Light grey text for contrast */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure full-height */
+            text-align: center;
+            overflow-y: auto; /* Enable vertical scrolling */
+            padding: 15px; /* Padding for mobile screens */
+            position: relative; /* Relative positioning to control stars */
+        }
+
+        /* Container to wrap all content and center it vertically */
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure full-height centering */
+        }
+
+        /* Header Section for Error Message */
+        header {
+            margin-bottom: 40px; /* Space below the header */
+        }
+
+        /* Bounce Animation to Match Main Page */
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        /* Styling for the Logo in the Error Page */
+        header img {
+            width: 225px; /* Consistent with the main page */
+            height: auto;
+            animation: bounce 0.285s infinite; /* Bounce animation */
+            margin-bottom: 20px; /* Space between logo and error text */
+        }
+
+        header h1 {
+            font-size: 3.5rem; /* Adjusted size for better mobile fit */
+            color: #53fc18; /* Kick Green for branding */
+        }
+
+        /* Main Content for the Error Explanation */
+        main {
+            max-width: 600px; /* Restrict content width for better readability */
+        }
+
+        main h2 {
+            font-size: 1.7rem; /* Adjust font size for mobile */
+            margin-bottom: 20px;
+            color: #cccccc; /* Light grey for secondary emphasis */
+        }
+
+        main p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #cccccc; /* Softer text color */
+        }
+
+        /* Button to Redirect User Back to Livestream */
+        .button {
+            display: inline-block;
+            padding: 12px 25px; /* Adjust padding to keep the text in one line */
+            background-color: #53fc18; /* Kick Green */
+            color: black;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            max-width: 240px; /* Increased width to ensure text fits */
+            white-space: nowrap; /* Ensure text doesn't wrap to a new line */
+            font-size: 1.1rem; /* Slightly smaller font for button text */
+        }
+
+        .button:hover {
+            background-color: #44d114; /* Darker green on hover */
+        }
+
+        /* Footer Styling */
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.8rem; /* Smaller footer text */
+            color: #888;
+        }
+
+        footer a {
+            color: #53fc18; /* Kick Green */
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline; /* Underline on hover */
+        }
+
+        /* Star Background */
+        #stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Ensure stars are behind content */
+            overflow: hidden;
+        }
+
+        /* Ensure stars cover full page including scroll area */
+        .stars-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            pointer-events: none; /* Prevent stars from being interactive */
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffffff; /* White stars */
+            border-radius: 50%; /* Circular stars */
+        }
+
+        /* Star Drift Animation for Mobile */
+        @keyframes drift {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(50px, 100px) scale(1.2); /* Slight scale and movement */
+            }
+            100% {
+                transform: translate(-50px, -100px) scale(1);
+            }
+        }
+
+        /* Mobile-Specific Adjustments */
+        @media (max-width: 768px) {
+            header img {
+                width: 180px; /* Adjusted logo size for mobile */
+            }
+
+            header h1 {
+                font-size: 3rem; /* Adjust title size for mobile */
+            }
+
+            main h2 {
+                font-size: 1.5rem; /* Slightly smaller for mobile */
+            }
+
+            .button {
+                padding: 10px 20px; /* Adjust padding for better fit */
+                font-size: 1rem; /* Slightly smaller button text */
+                max-width: 100%; /* Full-width buttons on mobile */
+                white-space: nowrap; /* Ensure text doesn't wrap */
+            }
+
+            footer {
+                font-size: 0.75rem; /* Smaller footer text for mobile */
+            }
+
+            /* On mobile, stars will automatically drift */
+            .star {
+                animation: drift 30s infinite linear;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Starry Background for Consistent Design -->
+    <div id="stars">
+        <!-- Overlay to ensure stars cover entire page even when scrolling -->
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Container for centering content -->
+    <div class="container">
+        <!-- Header Section for the 404 Error -->
+        <header>
+            <a href="https://kick.com/redhunllef">
+                <img src="redlogo.png" alt="Redhunllef Logo">
+            </a>
+            <h1>404</h1>
+        </header>
+
+        <!-- Main Section with Error Message and Link to Livestream -->
+        <main>
+            <h2>Oops! Page Not Found</h2>
+            <p>The page you are looking for doesn’t exist. You can visit Redhunllef’s official livestream instead.</p>
+            <a href="https://kick.com/redhunllef" class="button">Go to Redhunllef on Kick</a>
+        </main>
+
+        <!-- Footer with Credits -->
+        <footer>
+            <p>&copy; 2024 Redhunllef Livestream. All Rights Reserved.</p>
+            <p>Created by <a href="https://kick.com/gingrsnaps" target="_blank">GingrSnaps</a></p>
+        </footer>
+    </div>
+
+    <!-- Star Movement Script for Desktop -->
+    <script>
+        // Starry Background Effect
+        const starsContainer = document.querySelector('.stars-overlay');
+        const starsCount = 250;  // Number of stars
+        const stars = [];
+
+        // Create stars and position them randomly
+        for (let i = 0; i < starsCount; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            star.style.top = Math.random() * starsContainer.offsetHeight + 'px';
+            star.style.left = Math.random() * starsContainer.offsetWidth + 'px';
+            starsContainer.appendChild(star);
+            stars.push(star);
+        }
+
+        // Enable mouse parallax for desktop only
+        if (window.innerWidth > 768) {
+            window.addEventListener('mousemove', (e) => {
+                const { clientX, clientY } = e;
+                stars.forEach(star => {
+                    const x = (clientX - window.innerWidth / 2) / 75;
+                    const y = (clientY - window.innerHeight / 2) / 75;
+                    star.style.transform = `translate(${x}px, ${y}px)`;
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>

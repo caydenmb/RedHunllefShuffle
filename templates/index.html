@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Redhunllef Livestream</title>
+    
+    <!-- Favicon (Logo) -->
+    <link rel="icon" href="/static/redlogo.png" type="image/png">
+    
+    <!-- Google Fonts (Roboto for sleek typography) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Main Styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #3a3a3a;
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            overflow-y: auto;
+            padding: 15px;
+            position: relative;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header img {
+            width: 225px;
+            height: auto;
+            animation: bounce 0.6s infinite ease-in-out;
+            margin-bottom: 30px;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .button {
+            padding: 17px 44px;
+            background-color: #ff2d2d;
+            color: #fff;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.5rem;
+            text-align: center;
+            max-width: 230px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .button:hover {
+            background-color: #cc2424;
+        }
+
+        .wager-container {
+            margin-top: 50px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .wager-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+        }
+
+        /* Podium style for top 3 */
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .medal {
+            width: 75px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        .first-medal {
+            width: 112px; /* 50% larger for 1st place */
+        }
+
+        .podium div {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: #fff;
+            background-color: #444;
+            box-sizing: border-box;
+            font-size: 107%; /* Increased font size by 7% for podium places */
+        }
+
+        .podium div h3 {
+            margin-bottom: 10px; /* Small spacer between username and wager */
+        }
+
+        /* Styling for podium heights */
+        .first {
+            background-color: gold;
+            height: 270px;
+            width: 220px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 1);
+            text-shadow: 2px 2px 10px rgba(255, 215, 0, 1);
+        }
+
+        .second {
+            background-color: silver;
+            height: 220px;
+            width: 180px;
+            box-shadow: 0 0 15px rgba(192, 192, 192, 1);
+            text-shadow: 2px 2px 10px rgba(192, 192, 192, 1);
+        }
+
+        .third {
+            background-color: #cd7f32;
+            height: 200px;
+            width: 180px;
+            box-shadow: 0 0 15px rgba(205, 127, 50, 1);
+            text-shadow: 2px 2px 10px rgba(205, 127, 50, 1);
+        }
+
+        .other-standings {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 38px;
+            justify-items: center;
+            margin-bottom: 10px;
+        }
+
+        .standing {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            width: 180px; /* Fixed width */
+            height: 120px; /* Fixed height */
+            font-size: 1rem;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            overflow-wrap: break-word; /* Ensure long text wraps inside the box */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center text vertically */
+            align-items: center; /* Center text horizontally */
+        }
+
+        .standing h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: #ff2d2d;
+            font-weight: bold;
+        }
+
+        .standing p {
+            font-size: 1rem;
+            margin: 0;
+            color: #fff;
+        }
+
+        /* Footer styling, including built-by reference */
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        footer a {
+            color: #ff2d2d;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            header img { width: 180px; }
+            .button-container { flex-direction: column; gap: 15px; }
+            .button { font-size: 1.3rem; padding: 16px 42px; max-width: 100%; }
+            .podium div { width: 150px; }
+            .other-standings { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        #stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .stars-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffffff;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stars">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <a href="https://kick.com/redhunllef">
+                <img src="/static/redlogo.png" alt="Redhunllef Logo">
+            </a>
+        </header>
+
+        <div id="sponsor-message">
+            <p>Support Redhunllef by visiting his sponsors below.</p>
+        </div>
+
+        <div class="button-container">
+            <a href="https://shuffle.com/?r=Red" class="button">Shuffle.com</a>
+            <a href="https://chicken.gg/r/Red" class="button">Chicken.gg</a>
+            <a href="https://runestake.com/r/red" class="button">Runestake.com</a>
+            <a href="https://hypedrop.com/r/REDHUNLLEF" class="button">Hypedrop.com</a>
+            <a href="https://csgostake.com/r/red" class="button">CSGOStake.com</a>
+        </div>
+
+        <div class="wager-container">
+            <h2 class="wager-title">Shuffle.com Wager Race</h2>
+
+            <div class="podium" id="top-3-standings">
+                <!-- Top 3 players will be dynamically inserted here -->
+            </div>
+
+            <div class="other-standings" id="wager-standings">
+                <!-- 4th to 11th place players will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 Redhunllef Livestream. All Rights Reserved.</p>
+            <p>Built by <a href="https://kick.com/gingrsnaps" target="_blank">GingrSnaps</a></p>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript will populate the standings -->
+    <script>
+        const placeholderData = {
+            top1: { username: 'Player1', wager: '$10,000' },
+            top2: { username: 'Player2', wager: '$8,500' },
+            top3: { username: 'Player3', wager: '$7,500' },
+            top4: { username: 'Player4', wager: '$7,000' },
+            top5: { username: 'Player5', wager: '$6,500' },
+            top6: { username: 'Player6', wager: '$6,000' },
+            top7: { username: 'Player7', wager: '$5,500' },
+            top8: { username: 'Player8', wager: '$5,000' },
+            top9: { username: 'Player9', wager: '$4,500' },
+            top10: { username: 'Player10', wager: '$4,000' },
+            top11: { username: 'Player11', wager: '$3,500' }
+        };
+
+        function updateWagerRace() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Fetched data:", data);  // Debugging: print the data received in the frontend
+                    const top3Container = document.getElementById('top-3-standings');
+                    const standingsContainer = document.getElementById('wager-standings');
+
+                    top3Container.innerHTML = '';
+                    standingsContainer.innerHTML = '';
+
+                    const top3 = [
+                        { place: '1st', username: data.top1?.username || placeholderData.top1.username, wager: data.top1?.wager || placeholderData.top1.wager, medal: '/static/1st.png' },
+                        { place: '2nd', username: data.top2?.username || placeholderData.top2.username, wager: data.top2?.wager || placeholderData.top2.wager, medal: '/static/2nd.png' },
+                        { place: '3rd', username: data.top3?.username || placeholderData.top3.username, wager: data.top3?.wager || placeholderData.top3.wager, medal: '/static/3rd.png' }
+                    ];
+
+                    // Insert podium in the correct Olympic order
+                    top3Container.innerHTML = `
+                        <div class="second">
+                            <img src="${top3[1].medal}" class="medal" alt="2nd Place Medal">
+                            <h3>2nd: ${top3[1].username}</h3>
+                            <p>Wager: ${top3[1].wager}</p>
+                        </div>
+                        <div class="first">
+                            <img src="${top3[0].medal}" class="medal first-medal" alt="1st Place Medal">
+                            <h3>1st: ${top3[0].username}</h3>
+                            <p>Wager: ${top3[0].wager}</p>
+                        </div>
+                        <div class="third">
+                            <img src="${top3[2].medal}" class="medal" alt="3rd Place Medal">
+                            <h3>3rd: ${top3[2].username}</h3>
+                            <p>Wager: ${top3[2].wager}</p>
+                        </div>
+                    `;
+
+                    for (let i = 4; i <= 11; i++) {
+                        const user = data[`top${i}`] || placeholderData[`top${i}`];
+                        const div = document.createElement('div');
+                        div.classList.add('standing');
+                        div.innerHTML = `<h3>${i}th: ${user.username}</h3><p>Wager: ${user.wager}</p>`;
+                        standingsContainer.appendChild(div);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching wager data:', error);  // Debugging: print errors
+                    populateWithPlaceholderData();
+                });
+        }
+
+        function populateWithPlaceholderData() {
+            const top3Container = document.getElementById('top-3-standings');
+            const standingsContainer = document.getElementById('wager-standings');
+
+            top3Container.innerHTML = '';
+            standingsContainer.innerHTML = '';
+
+            const top3 = [
+                { place: '1st', username: placeholderData.top1.username, wager: placeholderData.top1.wager, medal: '/static/1st.png' },
+                { place: '2nd', username: placeholderData.top2.username, wager: placeholderData.top2.wager, medal: '/static/2nd.png' },
+                { place: '3rd', username: placeholderData.top3.username, wager: placeholderData.top3.wager, medal: '/static/3rd.png' }
+            ];
+
+            top3Container.innerHTML = `
+                <div class="second">
+                    <img src="${top3[1].medal}" class="medal" alt="2nd Place Medal">
+                    <h3>2nd: ${top3[1].username}</h3>
+                    <p>Wager: ${top3[1].wager}</p>
+                </div>
+                <div class="first">
+                    <img src="${top3[0].medal}" class="medal first-medal" alt="1st Place Medal">
+                    <h3>1st: ${top3[0].username}</h3>
+                    <p>Wager: ${top3[0].wager}</p>
+                </div>
+                <div class="third">
+                    <img src="${top3[2].medal}" class="medal" alt="3rd Place Medal">
+                    <h3>3rd: ${top3[2].username}</h3>
+                    <p>Wager: ${top3[2].wager}</p>
+                </div>
+            `;
+
+            for (let i = 4; i <= 11; i++) {
+                const user = placeholderData[`top${i}`];
+                const div = document.createElement('div');
+                div.classList.add('standing');
+                div.innerHTML = `<h3>${i}th: ${user.username}</h3><p>Wager: ${user.wager}</p>`;
+                standingsContainer.appendChild(div);
+            }
+        }
+
+        setInterval(updateWagerRace, 15 * 60 * 1000);
+        window.onload = updateWagerRace;
+    </script>
+
+    <script>
+        const starsContainer = document.querySelector('.stars-overlay');
+        const starsCount = 350;
+        const stars = [];
+
+        for (let i = 0; i < starsCount; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            star.style.top = Math.random() * starsContainer.offsetHeight + 'px';
+            star.style.left = Math.random() * starsContainer.offsetWidth + 'px';
+            star.style.transform = `scale(${1 + Math.random() * 0.15})`;
+            starsContainer.appendChild(star);
+            stars.push(star);
+        }
+
+        if (window.innerWidth > 768) {
+            window.addEventListener('mousemove', (e) => {
+                const { clientX, clientY } = e;
+                stars.forEach(star => {
+                    const xMovement = Math.min(Math.max((clientX - window.innerWidth / 2) / 75, -50), 50);
+                    const yMovement = Math.min(Math.max((clientY - window.innerHeight / 2) / 75, -50), 50);
+                    star.style.transform = `translate(${xMovement}px, ${yMovement}px)`;
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
