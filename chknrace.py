@@ -108,9 +108,9 @@ def update_placeholder_data():
 
 # Schedule data fetching every 5 minutes
 def schedule_data_fetch():
-    log_message('info', 'Fetching data every 5 minutes.')
+    log_message('info', 'Fetching data every 1.5 minutes.')
     fetch_data()  # Fetch data immediately when the script starts
-    threading.Timer(300, schedule_data_fetch).start()  # Schedule the next fetch in 5 minutes
+    threading.Timer(90, schedule_data_fetch).start()  # Schedule the next fetch in 1.5 minutes
 
 # Flask route to serve the cached data
 @app.route("/data")
