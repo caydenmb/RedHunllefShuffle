@@ -31,11 +31,11 @@ const prizeMap = {
 const targetDate = new Date('2025-05-09T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize countdown and data fetch loops
+  // Initialize countdown and data-fetch loops
   updateCountdown();
   setInterval(updateCountdown, 1000);
   fetchAndRender();
-  setInterval(fetchAndRender, 75_000);  // every 75 seconds
+  setInterval(fetchAndRender, 75000);  // use 75000, not 75_000
   setupWindowControls();
 });
 
@@ -53,12 +53,7 @@ function updateCountdown() {
   countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
 }
 
-/**
- * Fetch /data and update the DOM:
- *  - Podium seats 1–3
- *  - Others list 4–9 with emphasized labels
- * Logs fetch and update events.
- */
+/** Fetch /data and update the DOM (1–3 podium + 4–9 list). */
 async function fetchAndRender() {
   try {
     console.log(`[Fetch] Requesting new data at ${new Date().toLocaleTimeString()}`);
@@ -105,9 +100,8 @@ function maskUsername(name) {
   return name.slice(0, 2) + '*****';
 }
 
-/** Set up minimize, maximize, close, and drag for the livestream window. */
+/** Wire up minimize/maximize/close and drag behavior. */
 function setupWindowControls() {
-  // Minimize / Restore
   minimizeBtn.addEventListener('click', e => {
     e.stopPropagation();
     isMinimized = !isMinimized;
@@ -119,7 +113,6 @@ function setupWindowControls() {
     }
   });
 
-  // Maximize / Restore
   maximizeBtn.addEventListener('click', e => {
     e.stopPropagation();
     isMaximized = !isMaximized;
@@ -131,14 +124,12 @@ function setupWindowControls() {
     }
   });
 
-  // Close
   closeBtn.addEventListener('click', e => {
     e.stopPropagation();
     streamFloating.style.display = 'none';
     console.log('[Window] Closed');
   });
 
-  // Drag start
   header.addEventListener('mousedown', e => {
     if (e.target.closest('.stream-controls')) return;
     isDragging = true;
@@ -149,13 +140,11 @@ function setupWindowControls() {
     console.log('[Drag] Start');
   });
 
-  // Drag end
   document.addEventListener('mouseup', () => {
     if (isDragging) console.log('[Drag] End');
     isDragging = false;
   });
 
-  // Drag move
   document.addEventListener('mousemove', e => {
     if (!isDragging) return;
     streamFloating.style.top  = `${e.clientY - offsetY}px`;
