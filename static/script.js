@@ -1,9 +1,9 @@
 // static/script.js
 /**
  * Manages:
- *  - Draggable livestream window controls
+ *  - Draggable livestream window (Min/Max/Close)
  *  - Live countdown
- *  - Fetching and rendering top 9 wagerers every 90s
+ *  - Fetching & rendering top 9 wagerers every 90s
  *  - Masking usernames to first 2 chars + *****
  */
 
@@ -18,7 +18,7 @@ const othersList     = document.getElementById('others-list');
 let isMinimized = false, isMaximized = false;
 let isDragging = false, offsetX = 0, offsetY = 0;
 
-// Prize mapping for ranks 4–9
+// Prize mapping for positions 4–9
 const prizeMap = {
   4: '$150.00',
   5: '$75.00',
@@ -28,11 +28,10 @@ const prizeMap = {
   9: '$25.00'
 };
 
-// Race end time (May 9 2025 11:59 PM ET)
+// Race end time: May 9, 2025 11:59 PM EDT
 const targetDate = new Date('2025-05-09T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Init] UI ready');
   updateCountdown();
   setInterval(updateCountdown, 1000);
   fetchAndRender();
@@ -40,72 +39,62 @@ document.addEventListener('DOMContentLoaded', () => {
   setupWindowControls();
 });
 
-/** Update the countdown display every second */
+/** Update the countdown display. */
 function updateCountdown() {
   const diff = targetDate - new Date();
   if (diff <= 0) {
     countdownEl.textContent = 'Wager Race Ended';
     return;
   }
-  const d = Math.floor(diff / 86400000),
-        h = Math.floor((diff % 86400000) / 3600000),
-        m = Math.floor((diff % 3600000) / 60000),
-        s = Math.floor((diff % 60000) / 1000);
+  const d = Math.floor(diff/86400000),
+        h = Math.floor((diff%86400000)/3600000),
+        m = Math.floor((diff%3600000)/60000),
+        s = Math.floor((diff%60000)/1000);
   countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
 }
 
-/** Fetch /data and render podium (1-3) and others (4-9) */
+/** Fetch /data and render podium (1–3) and list (4–9). */
 async function fetchAndRender() {
   try {
-    console.log('[Fetch] GET /data');
     const res = await fetch('/data');
     const data = await res.json();
-    console.log('[Fetch] Data:', data);
 
     // Podium seats 1–3
-    ['first', 'second', 'third'].forEach((cls, i) => {
+    ['first','second','third'].forEach((cls,i) => {
       const seat = document.querySelector(`.podium-seat.${cls}`);
       const entry = data[`top${i+1}`];
       if (entry) {
-        const masked = maskUsername(entry.username);
-        seat.querySelector('.user').textContent  = masked;
+        seat.querySelector('.user').textContent  = maskUsername(entry.username);
         seat.querySelector('.wager').textContent = entry.wager;
       }
     });
 
-    // Others ranks 4–9
+    // Others positions 4–9
     othersList.innerHTML = '';
-    Object.keys(data)
-      .filter(k => /^top\d+$/.test(k))
-      .map(k => parseInt(k.replace('top', ''), 10))
-      .sort((a, b) => a - b)
-      .forEach(rank => {
-        if (rank >= 4 && rank <= 9) {
-          const entry = data[`top${rank}`];
-          const masked = maskUsername(entry.username);
-          const prize = prizeMap[rank];
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <div class="position">${rank}</div>
-            <div class="username">${masked}</div>
-            <div class="wager">${entry.wager}</div>
-            <div class="prize">${prize}</div>
-          `;
-          othersList.appendChild(li);
-        }
-      });
-
+    for (let rank = 4; rank <= 9; rank++) {
+      const entry = data[`top${rank}`];
+      if (entry) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="position">${rank}</div>
+          <div class="username">${maskUsername(entry.username)}</div>
+          <div class="wager">${entry.wager}</div>
+          <div class="prize">${prizeMap[rank]}</div>
+        `;
+        othersList.appendChild(li);
+      }
+    }
   } catch (err) {
-    console.error('[Error] fetchAndRender:', err);
+    console.error('Error in fetchAndRender:', err);
   }
 }
 
-/** Mask username: first 2 chars + '*****' */
+/** Mask username to first 2 chars + '*****'. */
 function maskUsername(name) {
-  return name.slice(0, 2) + '*****';
+  return name.slice(0,2) + '*****';
 }
 
-/** Setup minimize, maximize, close, and drag for livestream window */
+/** Wire up window controls and drag behavior. */
 function setupWindowControls() {
   minimizeBtn.addEventListener('click', e => {
     e.stopPropagation();
