@@ -1,71 +1,84 @@
 // static/script.js
 
-// Floating Stream Controls
+// — Floating Stream Controls & Dragging —
 const streamFloating = document.getElementById('stream-floating');
-const minimizeBtn = document.getElementById('minimizeBtn');
-const maximizeBtn = document.getElementById('maximizeBtn');
-const closeBtn = document.getElementById('closeBtn');
+const minimizeBtn    = document.getElementById('minimizeBtn');
+const maximizeBtn    = document.getElementById('maximizeBtn');
+const closeBtn       = document.getElementById('closeBtn');
+const header         = document.querySelector('.stream-header');
 
-let isMinimized = false;
-let isMaximized = false;
+let isMinimized = false, isMaximized = false;
+let isDragging  = false, offsetX = 0, offsetY = 0;
 
+// Minimize / Maximize / Close
 minimizeBtn.addEventListener('click', () => {
-  if (!isMinimized) {
-    streamFloating.classList.add('minimized');
-    isMinimized = true;
-    if (isMaximized) {
-      streamFloating.classList.remove('maximized');
-      isMaximized = false;
-    }
-  } else {
-    streamFloating.classList.remove('minimized');
-    isMinimized = false;
-  }
-});
-
-maximizeBtn.addEventListener('click', () => {
-  if (!isMaximized) {
-    streamFloating.classList.add('maximized');
-    isMaximized = true;
-    if (isMinimized) {
-      streamFloating.classList.remove('minimized');
-      isMinimized = false;
-    }
-  } else {
+  streamFloating.classList.toggle('minimized');
+  if (isMaximized) {
     streamFloating.classList.remove('maximized');
     isMaximized = false;
   }
+  isMinimized = !isMinimized;
 });
-
+maximizeBtn.addEventListener('click', () => {
+  streamFloating.classList.toggle('maximized');
+  if (isMinimized) {
+    streamFloating.classList.remove('minimized');
+    isMinimized = false;
+  }
+  isMaximized = !isMaximized;
+});
 closeBtn.addEventListener('click', () => {
   streamFloating.style.display = 'none';
 });
 
-// Countdown + Leaderboard Fetch
+// Dragging logic
+header.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  // Clear bottom/right so top/left can take over
+  streamFloating.style.bottom = 'auto';
+  streamFloating.style.right  = 'auto';
+  const rect = streamFloating.getBoundingClientRect();
+  offsetX = e.clientX - rect.left;
+  offsetY = e.clientY - rect.top;
+});
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  streamFloating.style.top  = `${e.clientY - offsetY}px`;
+  streamFloating.style.left = `${e.clientX - offsetX}px`;
+});
+
+// — Countdown + Leaderboard Fetch/Render with Masking —
 document.addEventListener('DOMContentLoaded', () => {
   const countdownEl = document.getElementById('countdown');
-  const targetDate = new Date('2025-05-09T23:59:00-04:00'); // May 9 2025, 11:59 PM ET
+  const targetDate  = new Date('2025-05-09T23:59:00-04:00');
 
   function updateCountdown() {
-    const now = new Date();
-    const diff = targetDate - now;
+    const diff = targetDate - new Date();
     if (diff <= 0) {
       countdownEl.textContent = 'Wager Race Ended';
-      clearInterval(countdownInterval);
+      clearInterval(cntInt);
       return;
     }
-    const days = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    countdownEl.textContent = `Time Remaining: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    const d = Math.floor(diff / 86400000),
+          h = Math.floor((diff % 86400000) / 3600000),
+          m = Math.floor((diff % 3600000) / 60000),
+          s = Math.floor((diff % 60000) / 1000);
+    countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
   }
   updateCountdown();
-  const countdownInterval = setInterval(updateCountdown, 1000);
+  const cntInt = setInterval(updateCountdown, 1000);
+
+  // Mask username: first 2 chars + 5 asterisks
+  function maskUsername(name) {
+    return name.slice(0,2) + '*****';
+  }
 
   async function fetchAndRender() {
     try {
-      const res = await fetch('/data');
+      const res  = await fetch('/data');
       const data = await res.json();
 
       // Podium (1–3)
@@ -73,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const seat = document.querySelector(`.podium-seat.${cls}`);
         const entry = data[`top${i+1}`];
         if (entry) {
-          seat.querySelector('.user').textContent = entry.username;
+          seat.querySelector('.user').textContent  = maskUsername(entry.username);
           seat.querySelector('.wager').textContent = entry.wager;
         }
       });
@@ -91,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             li.innerHTML = `
               <span class="position">${rank}</span>
-              <span class="username">${username}</span>
+              <span class="username">${maskUsername(username)}</span>
               <span class="wager">${wager}</span>
             `;
             others.appendChild(li);
@@ -103,5 +116,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   fetchAndRender();
-  setInterval(fetchAndRender, 90000); // every 1.5 minutes
+  setInterval(fetchAndRender, 90000);
 });

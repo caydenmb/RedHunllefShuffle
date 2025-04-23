@@ -1,5 +1,4 @@
 /* static/style.css */
-
 /*
   -----------------------------------
   RESET & BASE STYLES
@@ -32,9 +31,9 @@ body {
 }
 
 /*
------------------------------------
-HEADER
------------------------------------
+  -----------------------------------
+  HEADER
+  -----------------------------------
 */
 .header {
   background-color: #141414;
@@ -58,6 +57,7 @@ HEADER
   color: #fff;
 }
 
+/* LOGO bounce animation */
 .logo {
   width: 48px;
   height: 48px;
@@ -71,15 +71,9 @@ HEADER
 }
 
 @keyframes logo-bounce {
-  0%, 20%, 50%, 80%, 100% {
-      transform: translateY(0);
-  }
-  40% {
-      transform: translateY(-6px);
-  }
-  60% {
-      transform: translateY(-3px);
-  }
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+  60% { transform: translateY(-3px); }
 }
 
 .brand-title {
@@ -89,16 +83,12 @@ HEADER
 }
 
 /*
------------------------------------
-HERO SECTION
------------------------------------
+  -----------------------------------
+  HERO SECTION
+  -----------------------------------
 */
 .hero {
-  background: linear-gradient(
-    135deg,
-    #1a1a1a 0%,
-    #242424 100%
-  );
+  background: linear-gradient(135deg, #1a1a1a 0%, #242424 100%);
   padding: 6rem 1rem;
   display: flex;
   align-items: center;
@@ -141,9 +131,9 @@ HERO SECTION
 }
 
 /*
------------------------------------
-SPONSORS SECTION
------------------------------------
+  -----------------------------------
+  SPONSORS SECTION
+  -----------------------------------
 */
 .sponsors {
   padding: 3rem 0;
@@ -190,9 +180,9 @@ SPONSORS SECTION
 }
 
 /*
------------------------------------
-ABOUT SECTION
------------------------------------
+  -----------------------------------
+  ABOUT SECTION
+  -----------------------------------
 */
 .about {
   padding: 3rem 0;
@@ -207,9 +197,9 @@ ABOUT SECTION
 }
 
 /*
------------------------------------
-FLOATING STREAM WINDOW
------------------------------------
+  -----------------------------------
+  FLOATING STREAM WINDOW
+  -----------------------------------
 */
 #stream-floating {
   position: fixed;
@@ -292,9 +282,9 @@ FLOATING STREAM WINDOW
 }
 
 /*
------------------------------------
-FOOTER
------------------------------------
+  -----------------------------------
+  FOOTER
+  -----------------------------------
 */
 .footer {
   background-color: #141414;
@@ -311,32 +301,32 @@ FOOTER
 }
 
 /*
------------------------------------
-RESPONSIVE STYLES
------------------------------------
+  -----------------------------------
+  RESPONSIVE STYLES
+  -----------------------------------
 */
 @media (max-width: 600px) {
   .hero-heading {
-      font-size: 2rem;
+    font-size: 2rem;
   }
 
   #stream-floating {
-      width: 300px;
-      height: 180px;
-      bottom: 10px;
-      right: 10px;
+    width: 300px;
+    height: 180px;
+    bottom: 10px;
+    right: 10px;
   }
 
   .maximized {
-      width: 90vw;
-      height: 50vh;
-      bottom: 25vh;
-      right: 5vw;
+    width: 90vw;
+    height: 50vh;
+    bottom: 25vh;
+    right: 5vw;
   }
 }
 
 /* -----------------------------------
- WAGER RACE STYLES
+   WAGER RACE STYLES
 ----------------------------------- */
 .race {
   padding: 3rem 0;
@@ -365,14 +355,20 @@ RESPONSIVE STYLES
 .podium-seat.first {
   height: 200px;
   border: 2px solid #ffd700;
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255,215,0,0.8);
 }
 .podium-seat.second {
   height: 160px;
   border: 2px solid #c0c0c0;
+  transform: scale(1.10);
+  box-shadow: 0 0 12px rgba(192,192,192,0.8);
 }
 .podium-seat.third {
   height: 120px;
   border: 2px solid #cd7f32;
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(205,127,50,0.8);
 }
 .podium-seat .rank {
   position: absolute;
@@ -391,14 +387,22 @@ RESPONSIVE STYLES
 }
 .podium-seat .user {
   margin-top: 1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
-.podium-seat .wager {
+.podium-seat .label {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+}
+.podium-seat .wager,
+.podium-seat .prize {
   margin: 0.5rem 0;
-  color: #ccc;
+  font-size: 1.1rem;
+  color: #fff;
 }
 .podium-seat .prize {
-  font-weight: 700;
   color: #52ff33;
 }
 .others-list {
@@ -428,13 +432,16 @@ RESPONSIVE STYLES
   font-weight: 600;
 }
 
-/* Responsive tweaks */
-@media (max-width: 768px) {
-  .podium {
-      flex-direction: column;
-      align-items: center;
-  }
-  .podium-seat {
-      width: 80%;
-  }
+/* Make the stream header draggable */
+.stream-header {
+  cursor: move;
+}
+
+/* Ensure the floating window honors top/left when dragged */
+#stream-floating {
+  position: fixed;
+  top: auto;
+  left: auto;
+  bottom: 20px;
+  right: 20px;
 }
