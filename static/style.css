@@ -224,6 +224,7 @@ body {
   border-bottom: 1px solid #333;
   background-color: #2a2a2a;
   border-radius: 6px 6px 0 0;
+  cursor: move;
 }
 
 .stream-title {
@@ -328,15 +329,22 @@ body {
 /* -----------------------------------
    WAGER RACE STYLES
 ----------------------------------- */
+/* Center the race title */
+.race .section-title {
+  text-align: center;
+}
+
 .race {
   padding: 3rem 0;
   color: #eee;
 }
+
 .countdown {
   font-size: 1.2rem;
   text-align: center;
   margin-bottom: 1.5rem;
 }
+
 .podium {
   display: flex;
   justify-content: center;
@@ -344,6 +352,7 @@ body {
   gap: 2rem;
   margin-bottom: 2rem;
 }
+
 .podium-seat {
   background: #1f1f1f;
   padding: 1rem;
@@ -352,24 +361,28 @@ body {
   width: 120px;
   position: relative;
 }
+
 .podium-seat.first {
   height: 200px;
   border: 2px solid #ffd700;
   transform: scale(1.15);
   box-shadow: 0 0 15px rgba(255,215,0,0.8);
 }
+
 .podium-seat.second {
   height: 160px;
   border: 2px solid #c0c0c0;
   transform: scale(1.10);
   box-shadow: 0 0 12px rgba(192,192,192,0.8);
 }
+
 .podium-seat.third {
   height: 120px;
   border: 2px solid #cd7f32;
   transform: scale(1.05);
   box-shadow: 0 0 10px rgba(205,127,50,0.8);
 }
+
 .podium-seat .rank {
   position: absolute;
   top: -1.5rem;
@@ -385,63 +398,66 @@ body {
   justify-content: center;
   font-weight: bold;
 }
+
 .podium-seat .user {
   margin-top: 1rem;
   font-size: 1.25rem;
   font-weight: 700;
 }
+
 .podium-seat .label {
   font-size: 0.75rem;
   color: #aaa;
   margin-top: 0.5rem;
   text-transform: uppercase;
 }
+
 .podium-seat .wager,
 .podium-seat .prize {
   margin: 0.5rem 0;
   font-size: 1.1rem;
   color: #fff;
 }
+
 .podium-seat .prize {
   color: #52ff33;
 }
+
 .others-list {
   list-style: none;
   max-width: 600px;
   margin: 0 auto;
-  padding: 0;
+  padding: 0;  
 }
+
 .others-list li {
   display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #333;
 }
+
 .others-list li:nth-child(odd) {
   background: #141414;
 }
-.others-list .position {
-  font-weight: 600;
-  width: 2rem;
+
+.others-list .position,
+.others-list .username,
+.others-list .wager {
+  text-align: center;
 }
+
+.others-list .position {
+  width: auto;
+  font-weight: 600;
+}
+
 .others-list .username {
   flex: 1;
   margin-left: 1rem;
 }
+
 .others-list .wager {
   font-weight: 600;
-}
-
-/* Make the stream header draggable */
-.stream-header {
-  cursor: move;
-}
-
-/* Ensure the floating window honors top/left when dragged */
-#stream-floating {
-  position: fixed;
-  top: auto;
-  left: auto;
-  bottom: 20px;
-  right: 20px;
 }

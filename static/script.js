@@ -1,11 +1,11 @@
 // static/script.js
 
-// — Floating Stream Controls & Dragging —
+// Floating Stream Controls & Dragging
 const streamFloating = document.getElementById('stream-floating');
 const minimizeBtn    = document.getElementById('minimizeBtn');
 const maximizeBtn    = document.getElementById('maximizeBtn');
 const closeBtn       = document.getElementById('closeBtn');
-const header         = document.querySelector('.stream-header');
+const dragHandle     = document.querySelector('.stream-title');
 
 let isMinimized = false, isMaximized = false;
 let isDragging  = false, offsetX = 0, offsetY = 0;
@@ -31,10 +31,9 @@ closeBtn.addEventListener('click', () => {
   streamFloating.style.display = 'none';
 });
 
-// Dragging logic
-header.addEventListener('mousedown', (e) => {
+// Drag logic on title only
+dragHandle.addEventListener('mousedown', (e) => {
   isDragging = true;
-  // Clear bottom/right so top/left can take over
   streamFloating.style.bottom = 'auto';
   streamFloating.style.right  = 'auto';
   const rect = streamFloating.getBoundingClientRect();
@@ -50,7 +49,7 @@ document.addEventListener('mousemove', (e) => {
   streamFloating.style.left = `${e.clientX - offsetX}px`;
 });
 
-// — Countdown + Leaderboard Fetch/Render with Masking —
+// Countdown + Leaderboard Fetch/Render with Masking
 document.addEventListener('DOMContentLoaded', () => {
   const countdownEl = document.getElementById('countdown');
   const targetDate  = new Date('2025-05-09T23:59:00-04:00');
