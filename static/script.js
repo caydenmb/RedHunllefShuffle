@@ -89,7 +89,7 @@ async function fetchAndRender() {
   }
 }
 
-/** Mask username to first 2 chars + '*****'. */
+/** Mask a username: first 2 chars + '*****'. */
 function maskUsername(name) {
   return name.slice(0,2) + '*****';
 }
