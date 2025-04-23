@@ -5,10 +5,9 @@
   <meta charset="UTF-8" />
   <title>RedHunllef – Shuffle Wager Race</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta
-    name="description"
-    content="RedHunllef: A sleek, dark-themed site featuring high-stakes gambling, RuneScape, and next-level streaming on Kick."
-  />
+  <meta name="description" content="RedHunllef: Premium live wagering events." />
+  <!-- Modern Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
@@ -17,76 +16,63 @@
   <header class="header">
     <div class="container header-content">
       <a href="/" class="brand">
-        <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef Logo" class="logo" />
+        <img src="{{ url_for('static', filename='redlogo.png') }}" alt="Logo" class="logo" />
         <h1 class="brand-title">RedHunllef</h1>
       </a>
     </div>
   </header>
 
-  <!-- HERO SECTION -->
+  <!-- HERO -->
   <section class="hero">
     <div class="container hero-inner">
       <h2 class="hero-heading">RedHunllef</h2>
-      <p class="hero-subtext">
-        Videogames, Gambling, and more unforgettable moments streamed live!
-      </p>
-      <a
-        href="https://kick.com/redhunllef"
-        target="_blank"
-        rel="noopener"
-        class="kick-cta"
-      >
-        Watch on Kick
-      </a>
+      <p class="hero-subtext">Videogames, Gambling, and unforgettable live moments!</p>
+      <a href="https://kick.com/redhunllef" class="kick-cta" target="_blank">Watch on Kick</a>
     </div>
   </section>
 
-  <!-- SPONSORS SECTION -->
+  <!-- SPONSORS -->
   <section class="sponsors container">
     <h2 class="section-title">Sponsors &amp; Partners</h2>
-    <p class="section-subtitle">
-      Shout-out to the partners making the stream possible!<br />
-    </p>
+    <p class="section-subtitle">Thanks to those who make the stream possible.</p>
     <div class="sponsors-grid">
-      <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank" rel="noopener">Shuffle.com</a>
-      <a href="https://clash.gg/r/RED" class="sponsor-btn" target="_blank" rel="noopener">Clash.gg</a>
-      <a href="https://rain.gg/r/Hunllef" class="sponsor-btn" target="_blank" rel="noopener">Rain.gg</a>
+      <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank">Shuffle.com</a>
+      <a href="https://clash.gg/r/RED" class="sponsor-btn" target="_blank">Clash.gg</a>
+      <a href="https://rain.gg/r/Hunllef" class="sponsor-btn" target="_blank">Rain.gg</a>
     </div>
   </section>
 
-  <!-- WAGER RACE SECTION -->
-  <section class="race container" id="wager-race">
-    <h2 class="section-title">Shuffle Wager Race</h2>
-    <div id="countdown" class="countdown">Loading countdown…</div>
+  <!-- WAGER RACE -->
+  <section class="race container">
+    <div class="race-inner">
+      <h2 class="section-title">Shuffle Wager Race</h2>
+      <div id="countdown" class="countdown">Loading countdown…</div>
 
-    <div class="podium">
-      <div class="podium-seat second">
-        <div class="rank">2</div>
-        <div class="user">—</div>
-        <div class="label">Wagered</div>
-        <div class="wager">—</div>
-        <div class="label">Prize</div>
-        <div class="prize">$500.00</div>
+      <!-- Podium (1–3) -->
+      <div class="podium">
+        <div class="podium-seat second">
+          <div class="rank">2</div>
+          <div class="user">—</div>
+          <div class="label">Wagered</div><div class="wager">—</div>
+          <div class="label">Prize</div><div class="prize">$500.00</div>
+        </div>
+        <div class="podium-seat first">
+          <div class="rank">1</div>
+          <div class="user">—</div>
+          <div class="label">Wagered</div><div class="wager">—</div>
+          <div class="label">Prize</div><div class="prize">$1,000.00</div>
+        </div>
+        <div class="podium-seat third">
+          <div class="rank">3</div>
+          <div class="user">—</div>
+          <div class="label">Wagered</div><div class="wager">—</div>
+          <div class="label">Prize</div><div class="prize">$250.00</div>
+        </div>
       </div>
-      <div class="podium-seat first">
-        <div class="rank">1</div>
-        <div class="user">—</div>
-        <div class="label">Wagered</div>
-        <div class="wager">—</div>
-        <div class="label">Prize</div>
-        <div class="prize">$1,000.00</div>
-      </div>
-      <div class="podium-seat third">
-        <div class="rank">3</div>
-        <div class="user">—</div>
-        <div class="label">Wagered</div>
-        <div class="wager">—</div>
-        <div class="label">Prize</div>
-        <div class="prize">$250.00</div>
-      </div>
+
+      <!-- Others (4–9) -->
+      <ul class="others-list" id="others-list"></ul>
     </div>
-
-    <ul class="others-list" id="others-list"></ul>
   </section>
 
   <!-- FLOATING STREAM WINDOW -->
@@ -94,19 +80,13 @@
     <div class="stream-header">
       <div class="stream-title">Live Stream</div>
       <div class="stream-controls">
-        <button class="stream-btn" id="minimizeBtn">—</button>
-        <button class="stream-btn" id="maximizeBtn">▢</button>
-        <button class="stream-btn" id="closeBtn">✕</button>
+        <button id="minimizeBtn" class="stream-btn">—</button>
+        <button id="maximizeBtn" class="stream-btn">▢</button>
+        <button id="closeBtn"    class="stream-btn">✕</button>
       </div>
     </div>
     <div class="stream-body">
-      <iframe
-        src="https://player.kick.com/redhunllef"
-        frameborder="0"
-        scrolling="no"
-        allowfullscreen="true"
-        allow="autoplay; fullscreen"
-      ></iframe>
+      <iframe src="https://player.kick.com/redhunllef" frameborder="0" scrolling="no" allowfullscreen></iframe>
     </div>
   </div>
 
@@ -114,12 +94,7 @@
   <footer class="footer">
     <div class="container footer-inner">
       <p>&copy; 2025 RedHunllef. All rights reserved.</p>
-      <p>
-        Website created by
-        <a href="https://kick.com/gingrsnaps" target="_blank" rel="noopener" style="color: #ccc; text-decoration: none;">
-          GingrSnaps
-        </a>
-      </p>
+      <p>Website by <a href="https://kick.com/gingrsnaps" target="_blank">GingrSnaps</a></p>
     </div>
   </footer>
 

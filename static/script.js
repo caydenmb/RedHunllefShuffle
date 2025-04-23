@@ -1,119 +1,150 @@
 // static/script.js
+/**
+ * Manages the draggable livestream window controls,
+ * realtime countdown, and leaderboard fetching & rendering.
+ * Includes detailed console logging for debugging.
+ */
 
-// Floating Stream Controls & Dragging
+// UI references
 const streamFloating = document.getElementById('stream-floating');
 const minimizeBtn    = document.getElementById('minimizeBtn');
 const maximizeBtn    = document.getElementById('maximizeBtn');
 const closeBtn       = document.getElementById('closeBtn');
-const dragHandle     = document.querySelector('.stream-title');
+const header         = document.querySelector('.stream-header');
+const countdownEl    = document.getElementById('countdown');
+const othersList     = document.getElementById('others-list');
 
+// State
 let isMinimized = false, isMaximized = false;
-let isDragging  = false, offsetX = 0, offsetY = 0;
+let isDragging = false, offsetX = 0, offsetY = 0;
 
-// Minimize / Maximize / Close
-minimizeBtn.addEventListener('click', () => {
-  streamFloating.classList.toggle('minimized');
-  if (isMaximized) {
-    streamFloating.classList.remove('maximized');
-    isMaximized = false;
-  }
-  isMinimized = !isMinimized;
-});
-maximizeBtn.addEventListener('click', () => {
-  streamFloating.classList.toggle('maximized');
-  if (isMinimized) {
-    streamFloating.classList.remove('minimized');
-    isMinimized = false;
-  }
-  isMaximized = !isMaximized;
-});
-closeBtn.addEventListener('click', () => {
-  streamFloating.style.display = 'none';
-});
+// Prize mapping for places 4–9
+const prizeMap = {4:'$150.00',5:'$75.00',6:'$50.00',7:'$25.00',8:'$25.00',9:'$25.00'};
 
-// Drag logic on title only
-dragHandle.addEventListener('mousedown', (e) => {
-  isDragging = true;
-  streamFloating.style.bottom = 'auto';
-  streamFloating.style.right  = 'auto';
-  const rect = streamFloating.getBoundingClientRect();
-  offsetX = e.clientX - rect.left;
-  offsetY = e.clientY - rect.top;
-});
-document.addEventListener('mouseup', () => {
-  isDragging = false;
-});
-document.addEventListener('mousemove', (e) => {
-  if (!isDragging) return;
-  streamFloating.style.top  = `${e.clientY - offsetY}px`;
-  streamFloating.style.left = `${e.clientX - offsetX}px`;
-});
+// Race end: May 9 2025 11:59PM Eastern
+const targetDate = new Date('2025-05-09T23:59:00-04:00');
 
-// Countdown + Leaderboard Fetch/Render with Masking
+// Initialize UI
 document.addEventListener('DOMContentLoaded', () => {
-  const countdownEl = document.getElementById('countdown');
-  const targetDate  = new Date('2025-05-09T23:59:00-04:00');
-
-  function updateCountdown() {
-    const diff = targetDate - new Date();
-    if (diff <= 0) {
-      countdownEl.textContent = 'Wager Race Ended';
-      clearInterval(cntInt);
-      return;
-    }
-    const d = Math.floor(diff / 86400000),
-          h = Math.floor((diff % 86400000) / 3600000),
-          m = Math.floor((diff % 3600000) / 60000),
-          s = Math.floor((diff % 60000) / 1000);
-    countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
-  }
+  console.log('[Init] UI starting');
   updateCountdown();
-  const cntInt = setInterval(updateCountdown, 1000);
-
-  // Mask username: first 2 chars + 5 asterisks
-  function maskUsername(name) {
-    return name.slice(0,2) + '*****';
-  }
-
-  async function fetchAndRender() {
-    try {
-      const res  = await fetch('/data');
-      const data = await res.json();
-
-      // Podium (1–3)
-      ['first','second','third'].forEach((cls, i) => {
-        const seat = document.querySelector(`.podium-seat.${cls}`);
-        const entry = data[`top${i+1}`];
-        if (entry) {
-          seat.querySelector('.user').textContent  = maskUsername(entry.username);
-          seat.querySelector('.wager').textContent = entry.wager;
-        }
-      });
-
-      // Others (4–12)
-      const others = document.getElementById('others-list');
-      others.innerHTML = '';
-      Object.keys(data)
-        .filter(k => k.startsWith('top'))
-        .map(k => parseInt(k.replace('top','')))
-        .sort((a,b) => a - b)
-        .forEach(rank => {
-          if (rank > 3) {
-            const { username, wager } = data[`top${rank}`];
-            const li = document.createElement('li');
-            li.innerHTML = `
-              <span class="position">${rank}</span>
-              <span class="username">${maskUsername(username)}</span>
-              <span class="wager">${wager}</span>
-            `;
-            others.appendChild(li);
-          }
-        });
-    } catch (err) {
-      console.error('Failed to fetch wager data:', err);
-    }
-  }
-
+  setInterval(updateCountdown, 1000);
   fetchAndRender();
   setInterval(fetchAndRender, 90000);
+  setupWindowControls();
 });
+
+/** Update the countdown text. */
+function updateCountdown() {
+  const diff = targetDate - new Date();
+  if (diff <= 0) {
+    countdownEl.textContent = 'Wager Race Ended';
+    console.log('[Countdown] Race ended');
+    return;
+  }
+  const d = Math.floor(diff/86400000),
+        h = Math.floor((diff%86400000)/3600000),
+        m = Math.floor((diff%3600000)/60000),
+        s = Math.floor((diff%60000)/1000);
+  countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
+}
+
+/** Fetch /data and render podium & list. */
+async function fetchAndRender() {
+  try {
+    console.log('[Fetch] GET /data');
+    const res  = await fetch('/data');
+    const data = await res.json();
+    console.log('[Fetch] Data:', data);
+
+    // Top 3 podium
+    ['first','second','third'].forEach((cls,i) => {
+      const seat = document.querySelector(`.podium-seat.${cls}`);
+      const e    = data[`top${i+1}`];
+      if (e) {
+        const m = maskUsername(e.username);
+        console.log(`[Render] Podium ${i+1}: ${m}, ${e.wager}`);
+        seat.querySelector('.user').textContent  = m;
+        seat.querySelector('.wager').textContent = e.wager;
+      }
+    });
+
+    // Others (4–9)
+    othersList.innerHTML = '';
+    Object.keys(data)
+      .filter(k=>/^top\d+$/.test(k))
+      .map(k=>parseInt(k.replace('top','')))
+      .sort((a,b)=>a-b)
+      .forEach(rank => {
+        if (rank>=4 && rank<=9) {
+          const e = data[`top${rank}`];
+          const m = maskUsername(e.username);
+          const p = prizeMap[rank];
+          console.log(`[Render] Rank ${rank}: ${m}, ${e.wager}, Prize ${p}`);
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <div class="position">${rank}</div>
+            <div class="username">${m}</div>
+            <div class="wager">${e.wager}</div>
+            <div class="prize">${p}</div>
+          `;
+          othersList.appendChild(li);
+        }
+      });
+  } catch(err) {
+    console.error('[Error] fetchAndRender:', err);
+  }
+}
+
+/** Mask username to first 2 chars + '*****'. */
+function maskUsername(name) {
+  return name.slice(0,2) + '*****';
+}
+
+/** Setup minimize/maximize/close & drag. */
+function setupWindowControls() {
+  console.log('[Init] Window controls');
+  minimizeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    isMinimized = !isMinimized;
+    streamFloating.classList.toggle('minimized');
+    console.log(`[Window] Minimized: ${isMinimized}`);
+    if (isMaximized) {
+      isMaximized = false;
+      streamFloating.classList.remove('maximized');
+    }
+  });
+  maximizeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    isMaximized = !isMaximized;
+    streamFloating.classList.toggle('maximized');
+    console.log(`[Window] Maximized: ${isMaximized}`);
+    if (isMinimized) {
+      isMinimized = false;
+      streamFloating.classList.remove('minimized');
+    }
+  });
+  closeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    console.log('[Window] Closed');
+    streamFloating.style.display = 'none';
+  });
+  header.addEventListener('mousedown', e => {
+    if (e.target.closest('.stream-controls')) return;
+    console.log('[Drag] Start');
+    isDragging = true;
+    streamFloating.style.bottom = streamFloating.style.right = 'auto';
+    const rect = streamFloating.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+  });
+  document.addEventListener('mouseup', () => {
+    if (isDragging) console.log('[Drag] Stop');
+    isDragging = false;
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    streamFloating.style.top  = `${e.clientY - offsetY}px`;
+    streamFloating.style.left = `${e.clientX - offsetX}px`;
+  });
+}

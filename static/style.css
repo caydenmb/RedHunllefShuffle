@@ -1,463 +1,117 @@
 /* static/style.css */
-/*
-  -----------------------------------
-  RESET & BASE STYLES
-  -----------------------------------
-*/
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Ultra-modern dark theme with Inter font and CSS variables */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+:root {
+  --bg: #0f0f0f;
+  --card: #1e1e1e;
+  --accent: #52ff33;
+  --text: #e1e1e1;
+  --text-alt: #a1a1a1;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-               Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-               "Helvetica Neue", sans-serif;
-  background-color: #0e0e0e;
-  color: #eee;
-  line-height: 1.6;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height:1.5;
 }
+.container { width:90%; max-width:1200px; margin:0 auto; }
 
-/* Container Helper */
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/*
-  -----------------------------------
-  HEADER
-  -----------------------------------
-*/
+/* HEADER */
 .header {
-  background-color: #141414;
-  border-bottom: 1px solid #333;
-  position: sticky;
-  top: 0;
-  z-index: 999;
+  background:var(--card); border-bottom:1px solid #333;
+  position:sticky; top:0; z-index:1000;
 }
+.header-content { display:flex; align-items:center; padding:1rem 0; }
+.brand { display:flex; align-items:center; gap:1rem; color:var(--text); text-decoration:none; }
+.logo { width:48px; animation:bounce 2s infinite; }
+@keyframes bounce {0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}60%{transform:translateY(-3px)}}
+.brand-title { font-size:1.5rem; font-weight:700; }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  padding: 1rem 0;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-decoration: none;
-  color: #fff;
-}
-
-/* LOGO bounce animation */
-.logo {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  animation: logo-bounce 2s infinite;
-  transition: transform 0.2s;
-}
-
-.logo:hover {
-  transform: scale(1.05);
-}
-
-@keyframes logo-bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-6px); }
-  60% { transform: translateY(-3px); }
-}
-
-.brand-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-/*
-  -----------------------------------
-  HERO SECTION
-  -----------------------------------
-*/
+/* HERO */
 .hero {
-  background: linear-gradient(135deg, #1a1a1a 0%, #242424 100%);
-  padding: 6rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  background:linear-gradient(135deg, #1a1a1a, #272727);
+  padding:6rem 1rem; text-align:center;
 }
-
-.hero-inner {
-  max-width: 700px;
-}
-
-.hero-heading {
-  font-size: clamp(2.2rem, 5vw, 3.2rem);
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-.hero-subtext {
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  color: #ccc;
-  margin-bottom: 2rem;
-}
-
+.hero-heading { font-size:clamp(2.2rem,5vw,3.2rem); font-weight:800; margin-bottom:1rem; }
+.hero-subtext { color:var(--text-alt); margin-bottom:2rem; }
 .kick-cta {
-  display: inline-block;
-  background-color: #52ff33;
-  color: #111;
-  padding: 0.8rem 1.8rem;
-  border-radius: 999px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.3s, transform 0.2s;
-  font-size: 1rem;
+  background:var(--accent); color:#111; padding:.8rem 1.8rem;
+  border-radius:999px; font-weight:600; text-decoration:none;
+  transition:transform .2s;
 }
+.kick-cta:hover { transform:translateY(-2px); }
 
-.kick-cta:hover {
-  background-color: #42cc29;
-  transform: translateY(-2px);
+/* SPONSORS */
+.sponsors { padding:3rem 0; text-align:center; }
+.section-title { font-size:clamp(1.8rem,3vw,2.4rem); font-weight:700; color:var(--text); margin-bottom:.5rem; text-align:center; }
+.section-subtitle { color:var(--text-alt); margin-bottom:1.5rem; }
+.sponsors-grid { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+.sponsor-btn { background:#d63a3a; color:#fff; padding:.8rem 1.6rem; border-radius:9999px; font-weight:600; text-decoration:none; transition:transform .2s; }
+.sponsor-btn:hover { transform:translateY(-2px) scale(1.03); }
+
+/* RACE */
+.race-inner {
+  background:var(--card); padding:2rem; border-radius:12px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.8); margin-bottom:3rem;
 }
+.race .section-title { text-align:center; margin-bottom:1rem; }
+.countdown { text-align:center; color:var(--text-alt); margin-bottom:2rem; }
 
-/*
-  -----------------------------------
-  SPONSORS SECTION
-  -----------------------------------
-*/
-.sponsors {
-  padding: 3rem 0;
-  text-align: center;
-}
-
-.section-title {
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #fff;
-}
-
-.section-subtitle {
-  color: #aaa;
-  max-width: 600px;
-  margin: 0.5rem auto 2rem;
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.sponsors-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.sponsor-btn {
-  display: inline-block;
-  background-color: #d63a3a;
-  color: #fff;
-  padding: 0.8rem 1.6rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.3s, transform 0.2s;
-  font-size: 1rem;
-}
-
-.sponsor-btn:hover {
-  background-color: #b82a2a;
-  transform: translateY(-2px) scale(1.03);
-}
-
-/*
-  -----------------------------------
-  ABOUT SECTION
-  -----------------------------------
-*/
-.about {
-  padding: 3rem 0;
-  text-align: center;
-}
-
-.about-text {
-  max-width: 700px;
-  margin: 0.5rem auto 0;
-  color: #ccc;
-  font-size: 1rem;
-}
-
-/*
-  -----------------------------------
-  FLOATING STREAM WINDOW
-  -----------------------------------
-*/
-#stream-floating {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 420px;
-  height: 260px;
-  background-color: #1f1f1f;
-  border: 1px solid #333;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-  display: flex;
-  flex-direction: column;
-  z-index: 9999;
-}
-
-.stream-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #333;
-  background-color: #2a2a2a;
-  border-radius: 6px 6px 0 0;
-  cursor: move;
-}
-
-.stream-title {
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.stream-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.stream-btn {
-  font-size: 1rem;
-  color: #ccc;
-  width: 30px;
-  height: 30px;
-  text-align: center;
-  border-radius: 4px;
-  transition: background 0.2s;
-  cursor: pointer;
-  border: none;
-  background: none;
-}
-
-.stream-btn:hover {
-  background-color: #444;
-}
-
-.stream-body {
-  flex: 1;
-  position: relative;
-}
-
-.stream-body iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 0 0 6px 6px;
-}
-
-.minimized {
-  width: 280px;
-  height: auto;
-}
-
-.minimized .stream-body {
-  display: none;
-}
-
-.maximized {
-  width: 80vw;
-  height: 60vh;
-  bottom: 10vh;
-  right: 10vw;
-}
-
-/*
-  -----------------------------------
-  FOOTER
-  -----------------------------------
-*/
-.footer {
-  background-color: #141414;
-  border-top: 1px solid #333;
-  text-align: center;
-  padding: 2rem 0;
-  margin-top: 3rem;
-}
-
-.footer-inner p {
-  color: #aaa;
-  font-size: 0.9rem;
-  margin: 0.3rem 0;
-}
-
-/*
-  -----------------------------------
-  RESPONSIVE STYLES
-  -----------------------------------
-*/
-@media (max-width: 600px) {
-  .hero-heading {
-    font-size: 2rem;
-  }
-
-  #stream-floating {
-    width: 300px;
-    height: 180px;
-    bottom: 10px;
-    right: 10px;
-  }
-
-  .maximized {
-    width: 90vw;
-    height: 50vh;
-    bottom: 25vh;
-    right: 5vw;
-  }
-}
-
-/* -----------------------------------
-   WAGER RACE STYLES
------------------------------------ */
-/* Center the race title */
-.race .section-title {
-  text-align: center;
-}
-
-.race {
-  padding: 3rem 0;
-  color: #eee;
-}
-
-.countdown {
-  font-size: 1.2rem;
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.podium {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
+/* PODIUM */
+.podium { display:flex; justify-content:center; gap:2rem; margin-bottom:2rem; }
 .podium-seat {
-  background: #1f1f1f;
-  padding: 1rem;
-  border-radius: 8px;
-  text-align: center;
-  width: 120px;
-  position: relative;
+  background:var(--card); width:140px;
+  display:flex; flex-direction:column; align-items:center; justify-content:space-evenly;
+  border-radius:12px; position:relative; padding:1rem; box-shadow:0 4px 16px rgba(0,0,0,0.7);
 }
-
-.podium-seat.first {
-  height: 200px;
-  border: 2px solid #ffd700;
-  transform: scale(1.15);
-  box-shadow: 0 0 15px rgba(255,215,0,0.8);
-}
-
-.podium-seat.second {
-  height: 160px;
-  border: 2px solid #c0c0c0;
-  transform: scale(1.10);
-  box-shadow: 0 0 12px rgba(192,192,192,0.8);
-}
-
-.podium-seat.third {
-  height: 120px;
-  border: 2px solid #cd7f32;
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(205,127,50,0.8);
-}
-
+.podium-seat.first  { height:240px; border:3px solid #ffd700; transform:scale(1.1); }
+.podium-seat.second { height:200px; border:3px solid #c0c0c0; transform:scale(1.05); }
+.podium-seat.third  { height:160px; border:3px solid #cd7f32; }
 .podium-seat .rank {
-  position: absolute;
-  top: -1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #000;
-  color: #fff;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
+  position:absolute; top:-1rem; background:#000; color:#fff;
+  width:2.4rem; height:2.4rem; display:flex; align-items:center; justify-content:center;
+  border-radius:50%; font-weight:700;
 }
+.podium-seat .user  { font-size:1.2rem; font-weight:700; }
+.podium-seat .label { font-size:.75rem; color:var(--text-alt); text-transform:uppercase; }
+.podium-seat .wager { font-size:1rem; }
+.podium-seat .prize { font-size:1.1rem; font-weight:700; color:var(--accent); }
 
-.podium-seat .user {
-  margin-top: 1rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.podium-seat .label {
-  font-size: 0.75rem;
-  color: #aaa;
-  margin-top: 0.5rem;
-  text-transform: uppercase;
-}
-
-.podium-seat .wager,
-.podium-seat .prize {
-  margin: 0.5rem 0;
-  font-size: 1.1rem;
-  color: #fff;
-}
-
-.podium-seat .prize {
-  color: #52ff33;
-}
-
+/* OTHERS */
 .others-list {
-  list-style: none;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 0;  
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:1rem; list-style:none;
 }
-
 .others-list li {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #333;
+  background:var(--card); padding:1rem; border-radius:8px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.6);
 }
+.others-list .position { font-weight:600; margin-bottom:.25rem; }
+.others-list .username { font-weight:700; margin-bottom:.25rem; }
+.others-list .wager    { color:var(--text-alt); margin-bottom:.25rem; }
+.others-list .prize    { font-weight:700; color:var(--accent); }
 
-.others-list li:nth-child(odd) {
-  background: #141414;
+/* STREAM WINDOW */
+#stream-floating {
+  position:fixed; bottom:20px; right:20px; width:420px; height:260px;
+  background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.8); z-index:9999;
 }
-
-.others-list .position,
-.others-list .username,
-.others-list .wager {
-  text-align: center;
+.stream-header {
+  display:flex; align-items:center; justify-content:space-between; padding:.5rem 1rem;
+  background:#2a2a2a; cursor:move;
 }
+.stream-title { font-weight:600; }
+.stream-controls button { background:none; border:none; color:var(--text-alt); font-size:1rem; cursor:pointer; }
+.stream-body iframe { width:100%; height:100%; border:none; }
 
-.others-list .position {
-  width: auto;
-  font-weight: 600;
-}
+/* FOOTER */
+.footer { background:var(--card); text-align:center; padding:2rem 0; margin-top:2rem; }
+.footer-inner p { color:var(--text-alt); font-size:.9rem; }
 
-.others-list .username {
-  flex: 1;
-  margin-left: 1rem;
-}
-
-.others-list .wager {
-  font-weight: 600;
+/* RESPONSIVE */
+@media(max-width:768px){
+  .podium { flex-direction:column; align-items:center; }
+  #stream-floating { width:300px; height:180px; bottom:10px; right:10px; }
 }
