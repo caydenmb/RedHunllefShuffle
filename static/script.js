@@ -3,6 +3,7 @@
  * Draggable livestream window, countdown, and leaderboard rendering.
  * Fetches top 9 every 75 seconds and masks usernames.
  * Displays User, Wagered, and Prize labels for positions 4–9.
+ * Logs to console whenever new data is fetched and after the leaderboard updates.
  */
 
 const streamFloating = document.getElementById('stream-floating');
@@ -16,6 +17,7 @@ const othersList     = document.getElementById('others-list');
 let isMinimized = false, isMaximized = false;
 let isDragging = false, offsetX = 0, offsetY = 0;
 
+// Prize mapping for positions 4–9
 const prizeMap = {
   4: '$150.00',
   5: '$75.00',
@@ -25,16 +27,18 @@ const prizeMap = {
   9: '$25.00'
 };
 
+// Race end time: May 9, 2025 11:59 PM EDT
 const targetDate = new Date('2025-05-09T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
   updateCountdown();
   setInterval(updateCountdown, 1000);
   fetchAndRender();
-  setInterval(fetchAndRender, 75000);  // 75 seconds
+  setInterval(fetchAndRender, 75_000);  // 75 seconds
   setupWindowControls();
 });
 
+/** Update the countdown display. */
 function updateCountdown() {
   const diff = targetDate - new Date();
   if (diff <= 0) {
@@ -48,10 +52,13 @@ function updateCountdown() {
   countdownEl.textContent = `Time Remaining: ${d}d ${h}h ${m}m ${s}s`;
 }
 
+/** Fetch /data and render podium and list, logging each step. */
 async function fetchAndRender() {
   try {
+    console.log(`[Fetch] Requesting new data at ${new Date().toLocaleTimeString()}`);
     const res = await fetch('/data');
     const data = await res.json();
+    console.log('[Fetch] Data received:', data);
 
     // Podium 1–3
     ['first','second','third'].forEach((cls,i) => {
@@ -81,32 +88,48 @@ async function fetchAndRender() {
         othersList.appendChild(li);
       }
     }
+
+    console.log('[Update] Leaderboard updated at', new Date().toLocaleTimeString());
   } catch (err) {
-    console.error('fetchAndRender error:', err);
+    console.error('[Error] fetchAndRender failed:', err);
   }
 }
 
+/** Mask username to first 2 chars + '*****'. */
 function maskUsername(name) {
   return name.slice(0,2) + '*****';
 }
 
+/** Wire up minimize/maximize/close and drag behavior for the livestream window. */
 function setupWindowControls() {
   minimizeBtn.addEventListener('click', e => {
     e.stopPropagation();
     isMinimized = !isMinimized;
     streamFloating.classList.toggle('minimized');
-    if (isMaximized) { isMaximized = false; streamFloating.classList.remove('maximized'); }
+    console.log('[Window] Minimized:', isMinimized);
+    if (isMaximized) {
+      isMaximized = false;
+      streamFloating.classList.remove('maximized');
+    }
   });
+
   maximizeBtn.addEventListener('click', e => {
     e.stopPropagation();
     isMaximized = !isMaximized;
     streamFloating.classList.toggle('maximized');
-    if (isMinimized) { isMinimized = false; streamFloating.classList.remove('minimized'); }
+    console.log('[Window] Maximized:', isMaximized);
+    if (isMinimized) {
+      isMinimized = false;
+      streamFloating.classList.remove('minimized');
+    }
   });
+
   closeBtn.addEventListener('click', e => {
     e.stopPropagation();
     streamFloating.style.display = 'none';
+    console.log('[Window] Closed');
   });
+
   header.addEventListener('mousedown', e => {
     if (e.target.closest('.stream-controls')) return;
     isDragging = true;
@@ -114,8 +137,14 @@ function setupWindowControls() {
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
     streamFloating.style.bottom = streamFloating.style.right = 'auto';
+    console.log('[Drag] Start');
   });
-  document.addEventListener('mouseup', () => { isDragging = false; });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) console.log('[Drag] End');
+    isDragging = false;
+  });
+
   document.addEventListener('mousemove', e => {
     if (!isDragging) return;
     streamFloating.style.top  = `${e.clientY - offsetY}px`;
