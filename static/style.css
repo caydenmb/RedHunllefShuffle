@@ -1,0 +1,440 @@
+/* static/style.css */
+
+/*
+  -----------------------------------
+  RESET & BASE STYLES
+  -----------------------------------
+*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+               "Helvetica Neue", sans-serif;
+  background-color: #0e0e0e;
+  color: #eee;
+  line-height: 1.6;
+}
+
+/* Container Helper */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/*
+-----------------------------------
+HEADER
+-----------------------------------
+*/
+.header {
+  background-color: #141414;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  animation: logo-bounce 2s infinite;
+  transition: transform 0.2s;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+@keyframes logo-bounce {
+  0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+  }
+  40% {
+      transform: translateY(-6px);
+  }
+  60% {
+      transform: translateY(-3px);
+  }
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/*
+-----------------------------------
+HERO SECTION
+-----------------------------------
+*/
+.hero {
+  background: linear-gradient(
+    135deg,
+    #1a1a1a 0%,
+    #242424 100%
+  );
+  padding: 6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-inner {
+  max-width: 700px;
+}
+
+.hero-heading {
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.hero-subtext {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: #ccc;
+  margin-bottom: 2rem;
+}
+
+.kick-cta {
+  display: inline-block;
+  background-color: #52ff33;
+  color: #111;
+  padding: 0.8rem 1.8rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.3s, transform 0.2s;
+  font-size: 1rem;
+}
+
+.kick-cta:hover {
+  background-color: #42cc29;
+  transform: translateY(-2px);
+}
+
+/*
+-----------------------------------
+SPONSORS SECTION
+-----------------------------------
+*/
+.sponsors {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.section-subtitle {
+  color: #aaa;
+  max-width: 600px;
+  margin: 0.5rem auto 2rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.sponsors-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.sponsor-btn {
+  display: inline-block;
+  background-color: #d63a3a;
+  color: #fff;
+  padding: 0.8rem 1.6rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.3s, transform 0.2s;
+  font-size: 1rem;
+}
+
+.sponsor-btn:hover {
+  background-color: #b82a2a;
+  transform: translateY(-2px) scale(1.03);
+}
+
+/*
+-----------------------------------
+ABOUT SECTION
+-----------------------------------
+*/
+.about {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.about-text {
+  max-width: 700px;
+  margin: 0.5rem auto 0;
+  color: #ccc;
+  font-size: 1rem;
+}
+
+/*
+-----------------------------------
+FLOATING STREAM WINDOW
+-----------------------------------
+*/
+#stream-floating {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 420px;
+  height: 260px;
+  background-color: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+}
+
+.stream-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #333;
+  background-color: #2a2a2a;
+  border-radius: 6px 6px 0 0;
+}
+
+.stream-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.stream-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stream-btn {
+  font-size: 1rem;
+  color: #ccc;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.stream-btn:hover {
+  background-color: #444;
+}
+
+.stream-body {
+  flex: 1;
+  position: relative;
+}
+
+.stream-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.minimized {
+  width: 280px;
+  height: auto;
+}
+
+.minimized .stream-body {
+  display: none;
+}
+
+.maximized {
+  width: 80vw;
+  height: 60vh;
+  bottom: 10vh;
+  right: 10vw;
+}
+
+/*
+-----------------------------------
+FOOTER
+-----------------------------------
+*/
+.footer {
+  background-color: #141414;
+  border-top: 1px solid #333;
+  text-align: center;
+  padding: 2rem 0;
+  margin-top: 3rem;
+}
+
+.footer-inner p {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin: 0.3rem 0;
+}
+
+/*
+-----------------------------------
+RESPONSIVE STYLES
+-----------------------------------
+*/
+@media (max-width: 600px) {
+  .hero-heading {
+      font-size: 2rem;
+  }
+
+  #stream-floating {
+      width: 300px;
+      height: 180px;
+      bottom: 10px;
+      right: 10px;
+  }
+
+  .maximized {
+      width: 90vw;
+      height: 50vh;
+      bottom: 25vh;
+      right: 5vw;
+  }
+}
+
+/* -----------------------------------
+ WAGER RACE STYLES
+----------------------------------- */
+.race {
+  padding: 3rem 0;
+  color: #eee;
+}
+.countdown {
+  font-size: 1.2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+.podium-seat {
+  background: #1f1f1f;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  width: 120px;
+  position: relative;
+}
+.podium-seat.first {
+  height: 200px;
+  border: 2px solid #ffd700;
+}
+.podium-seat.second {
+  height: 160px;
+  border: 2px solid #c0c0c0;
+}
+.podium-seat.third {
+  height: 120px;
+  border: 2px solid #cd7f32;
+}
+.podium-seat .rank {
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.podium-seat .user {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+.podium-seat .wager {
+  margin: 0.5rem 0;
+  color: #ccc;
+}
+.podium-seat .prize {
+  font-weight: 700;
+  color: #52ff33;
+}
+.others-list {
+  list-style: none;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0;
+}
+.others-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #333;
+}
+.others-list li:nth-child(odd) {
+  background: #141414;
+}
+.others-list .position {
+  font-weight: 600;
+  width: 2rem;
+}
+.others-list .username {
+  flex: 1;
+  margin-left: 1rem;
+}
+.others-list .wager {
+  font-weight: 600;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .podium {
+      flex-direction: column;
+      align-items: center;
+  }
+  .podium-seat {
+      width: 80%;
+  }
+}

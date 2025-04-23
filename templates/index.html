@@ -1,0 +1,129 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RedHunllef – LiveStream & Leaderboards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="RedHunllef: A sleek, dark-themed site featuring high-stakes gambling, RuneScape, and next-level streaming on Kick."
+  />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef Logo" class="logo" />
+        <h1 class="brand-title">RedHunllef</h1>
+      </a>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <h2 class="hero-heading">RedHunllef</h2>
+      <p class="hero-subtext">
+        Videogames, Gambling, and more unforgettable moments streamed live!
+      </p>
+      <a
+        href="https://kick.com/redhunllef"
+        target="_blank"
+        rel="noopener"
+        class="kick-cta"
+      >
+        Watch on Kick
+      </a>
+    </div>
+  </section>
+
+  <!-- SPONSORS SECTION -->
+  <section class="sponsors container">
+    <h2 class="section-title">Sponsors &amp; Partners</h2>
+    <p class="section-subtitle">
+      Shout-out to the partners making the stream possible!<br />
+    </p>
+    <div class="sponsors-grid">
+      <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank" rel="noopener">Shuffle.com</a>
+      <a href="https://clash.gg/r/RED" class="sponsor-btn" target="_blank" rel="noopener">Clash.gg</a>
+      <a href="https://rain.gg/r/Hunllef" class="sponsor-btn" target="_blank" rel="noopener">Rain.gg</a>
+    </div>
+  </section>
+
+  <!-- ABOUT SECTION -->
+  <section class="about container">
+    <h2 class="section-title">About RedHunllef</h2>
+    <p class="about-text">
+      Dive into the fun community of <strong>RedHunllef</strong> on 
+      <strong>Kick</strong> for videogames, gambling, community events, and much more!
+    </p>
+  </section>
+
+  <!-- WAGER RACE SECTION -->
+  <section class="race container" id="wager-race">
+    <h2 class="section-title">Wager Race Leaderboard</h2>
+    <div id="countdown" class="countdown">Loading countdown…</div>
+    <div class="podium">
+      <div class="podium-seat second">
+        <div class="rank">2</div>
+        <div class="user">—</div>
+        <div class="wager">—</div>
+        <div class="prize">$500</div>
+      </div>
+      <div class="podium-seat first">
+        <div class="rank">1</div>
+        <div class="user">—</div>
+        <div class="wager">—</div>
+        <div class="prize">$1 000</div>
+      </div>
+      <div class="podium-seat third">
+        <div class="rank">3</div>
+        <div class="user">—</div>
+        <div class="wager">—</div>
+        <div class="prize">$250</div>
+      </div>
+    </div>
+    <ul class="others-list" id="others-list"></ul>
+  </section>
+
+  <!-- FLOATING STREAM WINDOW -->
+  <div id="stream-floating" class="stream-floating">
+    <div class="stream-header">
+      <div class="stream-title">Live Stream</div>
+      <div class="stream-controls">
+        <button class="stream-btn" id="minimizeBtn">—</button>
+        <button class="stream-btn" id="maximizeBtn">▢</button>
+        <button class="stream-btn" id="closeBtn">✕</button>
+      </div>
+    </div>
+    <div class="stream-body">
+      <iframe
+        src="https://player.kick.com/redhunllef"
+        frameborder="0"
+        scrolling="no"
+        allowfullscreen="true"
+        allow="autoplay; fullscreen"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>&copy; 2025 RedHunllef. All rights reserved.</p>
+      <p>
+        Website created by
+        <a href="https://kick.com/gingrsnaps" target="_blank" rel="noopener" style="color: #ccc; text-decoration: none;">
+          GingrSnaps
+        </a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
