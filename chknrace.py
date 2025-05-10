@@ -1,108 +1,115 @@
-# chknrace.py — Guaranteed Top 10 Fetching, Console Logging Restored
-
+# chknrace.py
+"""
+Flask backend for the Shuffle Wager Race website.
+Fetches data from Shuffle.com every 75 seconds, filters for campaign 'Red',
+formats the top 9 wagerers, and serves JSON at /data for the frontend.
+Includes detailed console logging and error handling.
+"""
 import requests
 import time
-import json
 from flask import Flask, jsonify, render_template
 from datetime import datetime
 import os
 import threading
 from flask_cors import CORS
 
-# Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Allow JS on the frontend to fetch /data
 
-# === API KEY & TIME RANGE (May 10 – May 23, 2025 in EST) ===
-api_key = "f45f746d-b021-494d-b9b6-b47628ee5cc9"
+# --- Configuration ---------------------------------------------------------
+
+API_KEY    = "f45f746d-b021-494d-b9b6-b47628ee5cc9"
 start_time = 1746830400  # May 10, 2025 12:00 AM EST
 end_time   = 1748014740  # May 23, 2025 11:59 PM EST
 
-url_template = f"https://affiliate.shuffle.com/stats/{api_key}?startTime={{start_time}}&endTime={{end_time}}"
+URL_TEMPLATE = (
+    f"https://affiliate.shuffle.com/stats/{API_KEY}"
+    f"?startTime={{start_time}}&endTime={{end_time}}"
+)
 
-# Cached leaderboard
-data_cache = {}
+data_cache = {}  # In-memory cache
 
-# === Logging Function ===
-def log(level, message):
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [{level.upper()}]: {message}")
+# --- Logging ---------------------------------------------------------------
 
-# === Fetch from Shuffle API and update cache ===
+def log_message(level: str, msg: str):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts}] [{level.upper()}]: {msg}")
+
+# --- Data Fetch & Processing ----------------------------------------------
+
 def fetch_data():
+    """Fetch, filter, sort, format top9, and cache."""
     global data_cache
+    log_message('info', 'Fetching data from Shuffle.com API')
     try:
-        log('info', 'Fetching data from Shuffle API...')
+        url = URL_TEMPLATE.format(start_time=START_TIME, end_time=END_TIME)
+        log_message('debug', f"GET {url}")
+        resp = requests.get(url)
+        log_message('debug', f"Status {resp.status_code}")
 
-        url = url_template.format(start_time=start_time, end_time=end_time)
-        log('debug', f"Requesting URL: {url}")
-        response = requests.get(url)
+        if resp.status_code == 400 and "INVALID_DATE" in resp.text:
+            log_message('warning', 'Invalid date range; fetching lifetime stats')
+            resp = requests.get(f"https://affiliate.shuffle.com/stats/{API_KEY}")
+            log_message('debug', f"Fallback status {resp.status_code}")
 
-        if response.status_code == 400 and "INVALID_DATE" in response.text:
-            log('warning', 'Invalid date range — retrying with lifetime stats')
-            response = requests.get(f"https://affiliate.shuffle.com/stats/{api_key}")
-
-        if response.status_code != 200:
-            log('error', f"HTTP {response.status_code}: {response.text}")
-            data_cache = {"error": f"Status code {response.status_code}"}
+        if resp.status_code != 200:
+            log_message('error', f"Fetch failed: {resp.status_code}")
+            data_cache = {"error": "Fetch failed"}
             return
 
-        api_data = response.json()
-        log('info', f"Received {len(api_data)} total entries from API")
-
+        api_data = resp.json()
         if not isinstance(api_data, list):
-            log('error', 'Expected list from API, got something else.')
+            log_message('error', 'Unexpected API response format')
             data_cache = {"error": "Invalid API format"}
             return
 
-        # Filter for campaignCode = 'Red'
+        log_message('info', f"API returned {len(api_data)} entries")
         filtered = [e for e in api_data if e.get('campaignCode') == 'Red']
-        log('info', f"{len(filtered)} entries matched campaignCode='Red'")
+        log_message('info', f"Filtered to {len(filtered)} entries for campaign 'Red'")
 
-        # Sort by wagerAmount
-        sorted_entries = sorted(filtered, key=lambda x: x.get('wagerAmount', 0), reverse=True)
+        sorted_list = sorted(filtered, key=lambda x: x.get('wagerAmount', 0), reverse=True)
+        top9 = {}
+        for i, entry in enumerate(sorted_list[:9], start=1):
+            uname = entry.get('username', 'Unknown')
+            amt   = entry.get('wagerAmount', 0.0)
+            wstr  = f"${amt:,.2f}"
+            top9[f"top{i}"] = {"username": uname, "wager": wstr}
+            log_message('debug', f"Rank {i}: {uname} – {wstr}")
 
-        # Limit to top 10 safely
-        top_wagerers = {}
-        for i, entry in enumerate(sorted_entries[:10]):
-            username = entry.get('username', 'Unknown')
-            wager_amt = entry.get('wagerAmount', 0.0)
-            formatted = f"${wager_amt:,.2f}"
-            top_wagerers[f'top{i+1}'] = {
-                'username': username,
-                'wager': formatted
-            }
-            log('debug', f"Top {i+1}: {username} wagered {formatted}")
-
-        data_cache = top_wagerers
-        log('success', f"Leaderboard updated with {len(top_wagerers)} users.")
+        data_cache = top9
+        log_message('info', 'data_cache updated with top 9 wagers')
 
     except Exception as e:
-        log('error', f"Exception during fetch: {str(e)}")
+        log_message('error', f"Exception during fetch: {e}")
         data_cache = {"error": str(e)}
 
-# === Repeating fetch every 75 seconds ===
-def schedule_fetch_loop():
-    fetch_data()  # ← Fetch immediately on start
-    threading.Timer(75, schedule_fetch_loop).start()
+def schedule_data_fetch():
+    """Fetch immediately, then every 75 seconds."""
+    fetch_data()
+    log_message('info', 'Next fetch in 75 seconds')
+    threading.Timer(75, schedule_data_fetch).start()
 
-# === Flask Routes ===
+# Kick off on import (works under Gunicorn too)
+schedule_data_fetch()
+
+# --- Flask Routes ----------------------------------------------------------
+
 @app.route("/data")
-def serve_data():
-    log('info', 'Serving cached /data to client')
+def get_data():
+    log_message('info', 'Serving /data')
     return jsonify(data_cache)
 
 @app.route("/")
 def serve_index():
-    log('info', 'Serving index.html')
-    return render_template("index.html")
+    log_message('info', 'Serving index.html')
+    return render_template('index.html')
 
 @app.errorhandler(404)
-def handle_404(e):
-    log('warning', '404 — Page Not Found')
-    return render_template("404.html"), 404
+def page_not_found(e):
+    log_message('warning', '404 – Page Not Found')
+    return render_template('404.html'), 404
 
-# === Application Entry Point ===
 if __name__ == "__main__":
-    log('info', 'Starting Flask application on port 8080...')
-    schedule_fetch_loop()  # Start repeated fetches + fetch on launch
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    port = int(os.getenv("PORT", 8080))
+    log_message('info', f"Starting Flask app on port {port}")
+    app.run(host="0.0.0.0", port=port)
