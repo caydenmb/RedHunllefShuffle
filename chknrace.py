@@ -24,7 +24,7 @@ END_TIME   = 1748361599  # May 23, 2025, 11:59 PM ET
 
 URL_TEMPLATE = (
     f"https://affiliate.shuffle.com/stats/{API_KEY}"
-    f"?startTime={{start_time}}&endTime={{end_time}}"
+    f"?startTime={{{{start_time}}}}&endTime={{{{end_time}}}}"
 )
 
 data_cache = {}  # In-memory cache
