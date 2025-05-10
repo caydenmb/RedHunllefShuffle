@@ -1,10 +1,3 @@
-# chknrace.py
-"""
-Flask backend for the Shuffle Wager Race website.
-Fetches data from Shuffle.com every 75 seconds, filters for campaign 'Red',
-formats the top 9 wagerers, and serves JSON at /data for the frontend.
-Includes detailed console logging and error handling.
-"""
 import requests
 import time
 from flask import Flask, jsonify, render_template
@@ -22,10 +15,7 @@ API_KEY    = "f45f746d-b021-494d-b9b6-b47628ee5cc9"
 START_TIME = 1746949260  # May 10, 2025, 00:01 AM ET
 END_TIME   = 1748361599  # May 23, 2025, 11:59 PM ET
 
-URL_TEMPLATE = (
-    f"https://affiliate.shuffle.com/stats/{API_KEY}"
-    f"?startTime={{{{start_time}}}}&endTime={{{{end_time}}}}"
-)
+URL_TEMPLATE = "https://affiliate.shuffle.com/stats/{API_KEY}?startTime={start_time}&endTime={end_time}"
 
 data_cache = {}  # In-memory cache
 
@@ -42,7 +32,8 @@ def fetch_data():
     global data_cache
     log_message('info', 'Fetching data from Shuffle.com API')
     try:
-        url = URL_TEMPLATE.format(start_time=START_TIME, end_time=END_TIME)
+        # Apply format to replace the placeholders with actual values
+        url = URL_TEMPLATE.format(API_KEY=API_KEY, start_time=START_TIME, end_time=END_TIME)
         log_message('debug', f"GET {url}")
         resp = requests.get(url)
         log_message('debug', f"Status {resp.status_code}")
