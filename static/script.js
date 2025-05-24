@@ -19,7 +19,7 @@ let isDragging = false, offsetX = 0, offsetY = 0;
 
 // Prize mapping for positions 4–9
 const prizeMap = {
-  4: '$450.00',
+  4: '$350.00',
   5: '$200.00',
   6: '$150.00',
   7: '$100.00',
