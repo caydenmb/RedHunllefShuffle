@@ -28,8 +28,8 @@ const prizeMap = {
   10: '$50.00'
 };
 
-// Race end time: May 23, 2025 11:59 PM EDT
-const targetDate = new Date('2025-06-21T23:00:00-04:00');
+// Race end time: June 21, 2025 11:59 PM EDT
+const targetDate = new Date('2025-06-21T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize countdown and data-fetch loops
