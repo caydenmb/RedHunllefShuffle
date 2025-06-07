@@ -12,9 +12,8 @@ CORS(app)  # Allow JS on the frontend to fetch /data
 # --- Configuration ---------------------------------------------------------
 
 API_KEY    = "f45f746d-b021-494d-b9b6-b47628ee5cc9"
-START_TIME = 1747967700  # May 22, 2025, 08:30 PM GMT
-END_TIME   = 1749274200  # June 06, 2025, 11:30 PM GMT
-
+START_TIME = 1749274200  # June 7
+END_TIME   = 1750528799  # June 21
 URL_TEMPLATE = "https://affiliate.shuffle.com/stats/{API_KEY}?startTime={start_time}&endTime={end_time}"
 
 data_cache = {}  # In-memory cache
