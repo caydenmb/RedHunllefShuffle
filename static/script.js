@@ -29,7 +29,7 @@ const prizeMap = {
 };
 
 // Race end time: July 05, 2025 11:59 PM EDT
-const targetDate = new Date('2025-07-05T23:59:00-04:00');
+const targetDate = new Date('2025-07-07T00:00:01-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize countdown and data-fetch loops
