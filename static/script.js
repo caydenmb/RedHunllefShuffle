@@ -28,7 +28,7 @@ const prizeMap = {
   10: '$50.00'
 };
 
-// Timer set for July 22, 2025 at 11:59 PM Eastern (EDT, UTC−4)
+// Timer set for August 05, 2025 at 11:59 PM Eastern (EDT, UTC−4)
 const targetDate = new Date('2025-08-05T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
