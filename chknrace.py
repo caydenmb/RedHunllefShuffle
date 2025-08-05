@@ -27,11 +27,10 @@ def log_message(level: str, msg: str):
 # --- Data Fetch & Processing ----------------------------------------------
 
 def fetch_data():
-    """Fetch, filter, sort, format top9, and cache."""
+    """Fetch, filter, sort, override first place, shift others, and cache."""
     global data_cache
     log_message('info', 'Fetching data from Shuffle.com API')
     try:
-        # Apply format to replace the placeholders with actual values
         url = URL_TEMPLATE.format(API_KEY=API_KEY, start_time=START_TIME, end_time=END_TIME)
         log_message('debug', f"GET {url}")
         resp = requests.get(url)
@@ -57,17 +56,29 @@ def fetch_data():
         filtered = [e for e in api_data if e.get('campaignCode') == 'Red']
         log_message('info', f"Filtered to {len(filtered)} entries for campaign 'Red'")
 
+        # sort descending by wager
         sorted_list = sorted(filtered, key=lambda x: x.get('wagerAmount', 0), reverse=True)
-        top9 = {}
-        for i, entry in enumerate(sorted_list[:9], start=1):
+
+        # collect original top9 into a list
+        entries = []
+        for entry in sorted_list[:9]:
             uname = entry.get('username', 'Unknown')
             amt   = entry.get('wagerAmount', 0.0)
             wstr  = f"${amt:,.2f}"
-            top9[f"top{i}"] = {"username": uname, "wager": wstr}
-            log_message('debug', f"Rank {i}: {uname} – {wstr}")
+            entries.append({"username": uname, "wager": wstr})
+
+        # --- OVERRIDE FIRST PLACE & SHIFT OTHERS DOWN ONE POSITION ---
+        override = {"username": "ha******", "wager": "$854,063.27"}
+        new_entries = [override] + entries  # override becomes new top1, originals shift
+
+        # build the final top9 dict
+        top9 = {}
+        for i, item in enumerate(new_entries[:9], start=1):
+            top9[f"top{i}"] = item
+            log_message('debug', f"Rank {i}: {item['username']} – {item['wager']}")
 
         data_cache = top9
-        log_message('info', 'data_cache updated with top 9 wagers')
+        log_message('info', 'data_cache updated with overridden first place and shifted ranks')
 
     except Exception as e:
         log_message('error', f"Exception during fetch: {e}")
