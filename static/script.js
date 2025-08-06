@@ -28,8 +28,8 @@ const prizeMap = {
   10: '$50.00'
 };
 
-// Timer set for August 05, 2025 at 11:59 PM Eastern (EDT, UTC−4)
-const targetDate = new Date('2025-08-19T23:59:00-04:00');
+// Timer set for August 19, 2025 at 11:59 PM Eastern (EDT, UTC−4)
+const targetDate = new Date('2025-08-19T23:59:59-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize countdown and data-fetch loops
@@ -152,3 +152,4 @@ function setupWindowControls() {
     streamFloating.style.left = `${e.clientX - offsetX}px`;
   });
 }
+
