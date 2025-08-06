@@ -12,8 +12,8 @@ CORS(app)  # Allow JS on the frontend to fetch /data
 # --- Configuration ---------------------------------------------------------
 
 API_KEY    = "f45f746d-b021-494d-b9b6-b47628ee5cc9"
-START_TIME = 1753239600  # July 22
-END_TIME   = 1754449200  # August 5
+START_TIME = 1754409600  # August 6 Midnight
+END_TIME   = 1755583200  # August 19 Midnight
 URL_TEMPLATE = "https://affiliate.shuffle.com/stats/{API_KEY}?startTime={start_time}&endTime={end_time}"
 
 data_cache = {}  # In-memory cache
@@ -27,10 +27,11 @@ def log_message(level: str, msg: str):
 # --- Data Fetch & Processing ----------------------------------------------
 
 def fetch_data():
-    """Fetch, filter, sort, override first place, shift others, and cache."""
+    """Fetch, filter, sort, format top9, and cache."""
     global data_cache
     log_message('info', 'Fetching data from Shuffle.com API')
     try:
+        # Apply format to replace the placeholders with actual values
         url = URL_TEMPLATE.format(API_KEY=API_KEY, start_time=START_TIME, end_time=END_TIME)
         log_message('debug', f"GET {url}")
         resp = requests.get(url)
@@ -56,29 +57,17 @@ def fetch_data():
         filtered = [e for e in api_data if e.get('campaignCode') == 'Red']
         log_message('info', f"Filtered to {len(filtered)} entries for campaign 'Red'")
 
-        # sort descending by wager
         sorted_list = sorted(filtered, key=lambda x: x.get('wagerAmount', 0), reverse=True)
-
-        # collect original top9 into a list
-        entries = []
-        for entry in sorted_list[:9]:
+        top9 = {}
+        for i, entry in enumerate(sorted_list[:9], start=1):
             uname = entry.get('username', 'Unknown')
             amt   = entry.get('wagerAmount', 0.0)
             wstr  = f"${amt:,.2f}"
-            entries.append({"username": uname, "wager": wstr})
-
-        # --- OVERRIDE FIRST PLACE & SHIFT OTHERS DOWN ONE POSITION ---
-        override = {"username": "ha******", "wager": "$854,063.27"}
-        new_entries = [override] + entries  # override becomes new top1, originals shift
-
-        # build the final top9 dict
-        top9 = {}
-        for i, item in enumerate(new_entries[:9], start=1):
-            top9[f"top{i}"] = item
-            log_message('debug', f"Rank {i}: {item['username']} – {item['wager']}")
+            top9[f"top{i}"] = {"username": uname, "wager": wstr}
+            log_message('debug', f"Rank {i}: {uname} – {wstr}")
 
         data_cache = top9
-        log_message('info', 'data_cache updated with overridden first place and shifted ranks')
+        log_message('info', 'data_cache updated with top 9 wagers')
 
     except Exception as e:
         log_message('error', f"Exception during fetch: {e}")

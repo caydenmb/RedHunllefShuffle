@@ -29,7 +29,7 @@ const prizeMap = {
 };
 
 // Timer set for August 05, 2025 at 11:59 PM Eastern (EDT, UTC−4)
-const targetDate = new Date('2025-08-05T23:59:00-04:00');
+const targetDate = new Date('2025-08-19T23:59:00-04:00');
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize countdown and data-fetch loops
