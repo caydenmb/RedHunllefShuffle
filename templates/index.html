@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shuffle.com Wager Race – RedHunllef</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Live Shuffle.com wager race leaderboard with stream mini-player." />
+  <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="brand" aria-label="Homepage">
+        <img src="{{ url_for('static', filename='redlogo.png') }}" alt="Logo" class="logo" />
+        <h1 class="brand-title">RedHunllef</h1>
+      </a>
+      <nav class="utility">
+        <a class="utility-link" href="https://kick.com/redhunllef" target="_blank" rel="noopener">Watch on Kick</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <h2 class="hero-heading">
+        Redhunllef: Your go-to gambling streamer, gamer, and variety entertainer.
+      </h2>
+      <p class="hero-subtext">
+        The leaderboard updates live. Watch Redhunllef here or open the Kick stream for the full view.
+      </p>
+
+      <!-- Countdown pills: DD : HH : MM : SS -->
+      <div id="countdown" class="countdown-wrap" aria-live="polite">
+        <div class="time-pill"><span id="dd">00</span><label>Days</label></div>
+        <div class="sep">:</div>
+        <div class="time-pill"><span id="hh">00</span><label>Hours</label></div>
+        <div class="sep">:</div>
+        <div class="time-pill"><span id="mm">00</span><label>Minutes</label></div>
+        <div class="sep">:</div>
+        <div class="time-pill"><span id="ss">00</span><label>Seconds</label></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sponsors -->
+  <section class="sponsors container">
+    <h2 class="section-title">Sponsors</h2>
+    <p class="section-subtitle">Thanks to our partners for supporting the stream!</p>
+    <div class="sponsors-grid">
+      <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank" rel="noopener">Shuffle.com</a>
+      <a href="https://runestake.com/r/Red" class="sponsor-btn" target="_blank" rel="noopener">RuneStake.com</a>
+    </div>
+  </section>
+
+  <!-- Live race content -->
+  <section class="race container">
+    <div class="race-inner">
+      <div class="race-header">
+        <h2 class="section-title centered">Shuffle Wager Leaderboard</h2>
+      </div>
+
+      <div class="helper-card">
+        <p><strong>Check out the wager placements below!</strong> Top 3 shine on the podium, with everyone else lined up below. It’s all updated live!</p>
+      </div>
+
+      <!-- Top 3 -->
+      <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
+
+      <!-- 4–10 in one line (no scrollbar) -->
+      <ul id="others-list" class="others-inline" aria-label="Ranks 4 to 10"></ul>
+    </div>
+  </section>
+
+  <!-- Bottom-right stream mini-player -->
+  <div id="stream-floating" class="stream-floating" role="dialog" aria-label="Live Stream Mini Player" aria-expanded="true">
+    <div class="stream-header" id="stream-drag-handle">
+      <div class="stream-title">Live Stream</div>
+      <div class="stream-controls">
+        <button id="minimizeBtn" class="stream-btn" title="Minimize / Restore" aria-pressed="false">—</button>
+        <button id="maximizeBtn" class="stream-btn" title="Open on Kick">▢</button>
+        <button id="closeBtn"    class="stream-btn" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="stream-body">
+      <iframe
+        src="https://player.kick.com/redhunllef"
+        title="Kick Player"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        referrerpolicy="no-referrer"
+        loading="lazy">
+      </iframe>
+      <div id="resizeHandle" class="resize-handle" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img src="{{ url_for('static', filename='redlogo.png') }}" alt="" class="footer-logo" />
+        <div>
+          <h3>RedHunllef</h3>
+          <p class="muted">Live Wager Races & Stream.</p>
+        </div>
+      </div>
+      <nav class="footer-links">
+        <a href="/" aria-label="Home">Home</a>
+        <a href="https://kick.com/redhunllef" target="_blank" rel="noopener">Kick Stream</a>
+        <a href="https://shuffle.com/?r=Red" target="_blank" rel="noopener">Shuffle</a>
+        <a href="https://runestake.com/r/Red" target="_blank" rel="noopener">RuneStake</a>
+      </nav>
+      <div class="footer-meta">
+        <p>&copy; <span id="year"></span> RedHunllef. All rights reserved.</p>
+        <p>Site by <a href="https://kick.com/gingrsnaps" target="_blank" rel="noopener">GingrSnaps</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+</html>
