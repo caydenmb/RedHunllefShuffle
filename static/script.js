@@ -1,16 +1,11 @@
-/**
- * script.js
- * - Keeps leaderboard logic identical
- * - Removes iframe/player logic
- * - Adds polished Live Status polling (every 30s) via /stream
- */
-
 console.log("[DEBUG] boot: script.js loaded");
 
 const $ = (s) => document.querySelector(s);
 
-/* Prize schedule (includes 10th with $0.00) */
-const PRIZE_MAP = {1:"$1,700.00",2:"$900.00",3:"$500.00",4:"$300.00",5:"$200.00",6:"$150.00",7:"$100.00",8:"$75.00",9:"$50.00",10:"$0.00"};
+const PRIZE_MAP = {
+  1: "$1,700.00", 2: "$900.00", 3: "$500.00", 4: "$300.00", 5: "$200.00",
+  6: "$150.00", 7: "$100.00", 8: "$75.00", 9: "$50.00", 10: "$0.00"
+};
 
 /* Countdown */
 function pad2(n){return String(n).padStart(2,"0")}
@@ -39,28 +34,57 @@ async function fetchJSON(url,opts={}){
   return res.json();
 }
 
-/* Live status polling */
+/* Live status polling + viewer chip */
+function ensureViewerChip(container){
+  let chip = container.querySelector(".viewer-chip");
+  if(!chip){
+    chip = document.createElement("span");
+    chip.className = "viewer-chip";
+    // Insert before CTA if present
+    const cta = container.querySelector(".live-cta");
+    if (cta) container.insertBefore(chip, cta);
+    else container.appendChild(chip);
+  }
+  return chip;
+}
+
 async function updateLiveStatus(){
   const badge = $("#liveStatus");
   const text  = badge.querySelector(".text");
+  const chip  = ensureViewerChip(badge);
+
   try{
     const data = await fetchJSON("/stream");
-    // shape: { live: bool, title?: str, viewers?: int, updated: epoch, source: "kick"|"unknown" }
+    const viewers = Number.isFinite(data.viewers) ? Number(data.viewers) : null;
+
     if(data.live){
       badge.classList.remove("off","unk"); badge.classList.add("live");
       text.textContent = data.title ? `Live now: ${data.title}` : "Live now";
+
+      if (viewers !== null && viewers >= 0) {
+        chip.textContent = `${viewers.toLocaleString()} watching`;
+        chip.style.display = "inline-flex";
+        chip.setAttribute("aria-label", `${viewers} viewers`);
+      } else {
+        chip.style.display = "none";
+        chip.removeAttribute("aria-label");
+      }
     }else{
       badge.classList.remove("live","unk"); badge.classList.add("off");
       text.textContent = "Offline";
+      chip.style.display = "none";
+      chip.removeAttribute("aria-label");
     }
   }catch(err){
     badge.classList.remove("live","off"); badge.classList.add("unk");
     text.textContent = "Status unavailable";
+    const chipEl = badge.querySelector(".viewer-chip");
+    if (chipEl) { chipEl.style.display = "none"; chipEl.removeAttribute("aria-label"); }
     console.error("[ERROR] live status:", err);
   }
 }
 
-/* Leaderboard rendering (unchanged) */
+/* Leaderboard rendering */
 function successText(r){return r===1?"Champion!":r===2?"Runner-up!":r===3?"Third place!":""}
 function makeSeat(rank,name,wager,extra=""){
   const crown = rank===1?"👑":rank===2?"🥈":rank===3?"🥉":"";
