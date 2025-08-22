@@ -27,13 +27,14 @@
   <section class="hero">
     <div class="container hero-inner">
       <h2 class="hero-heading">
-        Redhunllef: Gambling, Gaming, and variety streamer.
+        Redhunllef: Your go-to gambling streamer, gamer, and variety entertainer — catch the action live below!
       </h2>
 
-      <!-- Live Status Badge (replaces the iframe window) -->
+      <!-- Live Status Badge -->
       <div id="liveStatus" class="live-status" role="status" aria-live="polite">
         <span class="dot"></span>
         <span class="text">Checking live status…</span>
+        <span class="viewer-chip" style="display:none"></span>
         <a class="live-cta" href="https://kick.com/redhunllef" target="_blank" rel="noopener">Open Kick</a>
       </div>
 
@@ -68,13 +69,13 @@
       </div>
 
       <div class="helper-card">
-        <p><strong>Check out the wager placements below!</strong> - no refresh needed.</p>
+        <p><strong>Check out the wager placements below!</strong> Top 3 shine on the podium, with everyone else lined up below. It’s all live — no refresh needed.</p>
       </div>
 
       <!-- Top 3 -->
       <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
 
-      <!-- 4–10 in one line (no scrollbar) -->
+      <!-- 4–10 single row -->
       <ul id="others-list" class="others-inline" aria-label="Ranks 4 to 10"></ul>
     </div>
   </section>
@@ -86,7 +87,7 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="" class="footer-logo" />
         <div>
           <h3>RedHunllef</h3>
-          <p class="muted">Live Wager Races & Streams.</p>
+          <p class="muted">Shuffle.com Wager Race – Live leaderboard & stream.</p>
         </div>
       </div>
       <nav class="footer-links">
