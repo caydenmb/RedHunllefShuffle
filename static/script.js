@@ -1,151 +1,163 @@
-console.log("[DEBUG] boot: script.js loaded");
+(() => {
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-const $ = (s) => document.querySelector(s);
+  const podiumEl = $('#podium');
+  const othersEl = $('#others-list');
+  const liveEl = $('#liveStatus');
+  const viewerChip = $('.viewer-chip', liveEl);
+  const dot = $('.dot', liveEl);
+  const text = $('.text', liveEl);
 
-const PRIZE_MAP = {
-  1: "$1,700.00", 2: "$900.00", 3: "$500.00", 4: "$300.00", 5: "$200.00",
-  6: "$150.00", 7: "$100.00", 8: "$75.00", 9: "$50.00", 10: "$0.00"
-};
+  const dd = $('#dd'), hh = $('#hh'), mm = $('#mm'), ss = $('#ss');
+  const yearOut = $('#year');
 
-/* Countdown */
-function pad2(n){return String(n).padStart(2,"0")}
-function startCountdown(endEpoch){
-  const elD=$("#dd"),elH=$("#hh"),elM=$("#mm"),elS=$("#ss");
-  const target=Number(endEpoch)||0;
-  function tick(){
-    const now=Math.floor(Date.now()/1000);
-    let diff=Math.max(0,target-now);
-    const d=Math.floor(diff/86400);diff%=86400;
-    const h=Math.floor(diff/3600);diff%=3600;
-    const m=Math.floor(diff/60);const s=diff%60;
-    elD.textContent=pad2(d);elH.textContent=pad2(h);elM.textContent=pad2(m);elS.textContent=pad2(s);
+  const PRIZES = {
+    1: '$1,700.00',
+    2: '$900.00',
+    3: '$500.00',
+    4: '$300.00',
+    5: '$200.00',
+    6: '$150.00',
+    7: '$100.00',
+    8: '$75.00',
+    9: '$50.00',
+    10: '$0.00'
+  };
+
+  function fmtInt(n) {
+    return (n ?? 0).toLocaleString();
   }
-  tick(); setInterval(tick,1000);
-}
 
-/* Networking */
-let inflight;
-async function fetchJSON(url,opts={}){
-  if(inflight) inflight.abort();
-  inflight = new AbortController();
-  opts.signal = inflight.signal;
-  const res = await fetch(url,opts);
-  if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  return res.json();
-}
+  function buildPodium(podium) {
+    // Expected: array length 0..3, each { username, wager }
+    podiumEl.innerHTML = '';
 
-/* Live status polling + viewer chip */
-function ensureViewerChip(container){
-  let chip = container.querySelector(".viewer-chip");
-  if(!chip){
-    chip = document.createElement("span");
-    chip.className = "viewer-chip";
-    // Insert before CTA if present
-    const cta = container.querySelector(".live-cta");
-    if (cta) container.insertBefore(chip, cta);
-    else container.appendChild(chip);
+    const ranks = [
+      { cls: 'col-second', label: 2, medal: '🥈' },
+      { cls: 'col-first',  label: 1, medal: '🥇' },
+      { cls: 'col-third',  label: 3, medal: '🥉' }
+    ];
+
+    ranks.forEach((r, idx) => {
+      const entry = podium[idx] || null;
+      const seat = document.createElement('article');
+      seat.className = `podium-seat ${r.cls} fade-in`;
+
+      seat.innerHTML = `
+        <span class="rank-badge">${r.label}</span>
+        <div class="crown">${r.medal}</div>
+        <div class="user">${entry ? entry.username : '--'}</div>
+        <div class="label">WAGERED</div>
+        <div class="wager">${entry ? entry.wager : '$0.00'}</div>
+        <div class="label">PRIZE</div>
+        <div class="prize">${PRIZES[r.label]}</div>
+      `;
+
+      podiumEl.appendChild(seat);
+    });
   }
-  return chip;
-}
 
-async function updateLiveStatus(){
-  const badge = $("#liveStatus");
-  const text  = badge.querySelector(".text");
-  const chip  = ensureViewerChip(badge);
+  function buildOthers(others) {
+    // others: [{rank, username, wager}]
+    const slice = (others || []).slice(0, 7); // 4..10 -> seven cards
+    othersEl.innerHTML = slice.map(o => `
+      <li class="fade-in">
+        <span class="position">#${o.rank}</span>
+        <div class="username">${o.username}</div>
+        <div class="label emphasized">WAGER</div>
+        <div class="wager">${o.wager}</div>
+        <div class="prize">${PRIZES[o.rank] || '$0.00'}</div>
+      </li>
+    `).join('');
+  }
 
-  try{
-    const data = await fetchJSON("/stream");
-    const viewers = Number.isFinite(data.viewers) ? Number(data.viewers) : null;
-
-    if(data.live){
-      badge.classList.remove("off","unk"); badge.classList.add("live");
-      text.textContent = data.title ? `Live now: ${data.title}` : "Live now";
-
-      if (viewers !== null && viewers >= 0) {
-        chip.textContent = `${viewers.toLocaleString()} watching`;
-        chip.style.display = "inline-flex";
-        chip.setAttribute("aria-label", `${viewers} viewers`);
-      } else {
-        chip.style.display = "none";
-        chip.removeAttribute("aria-label");
-      }
-    }else{
-      badge.classList.remove("live","unk"); badge.classList.add("off");
-      text.textContent = "Offline";
-      chip.style.display = "none";
-      chip.removeAttribute("aria-label");
+  async function fetchData() {
+    try {
+      const r = await fetch('/data', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`data status ${r.status}`);
+      const j = await r.json();
+      buildPodium(j.podium || []);
+      buildOthers(j.others || []);
+      console.info('[leaderboard] updated', j);
+    } catch (e) {
+      console.error('[leaderboard] failed', e);
     }
-  }catch(err){
-    badge.classList.remove("live","off"); badge.classList.add("unk");
-    text.textContent = "Status unavailable";
-    const chipEl = badge.querySelector(".viewer-chip");
-    if (chipEl) { chipEl.style.display = "none"; chipEl.removeAttribute("aria-label"); }
-    console.error("[ERROR] live status:", err);
   }
-}
 
-/* Leaderboard rendering */
-function successText(r){return r===1?"Champion!":r===2?"Runner-up!":r===3?"Third place!":""}
-function makeSeat(rank,name,wager,extra=""){
-  const crown = rank===1?"👑":rank===2?"🥈":rank===3?"🥉":"";
-  const seat = document.createElement("div");
-  seat.className = `podium-seat ${extra} fade-in`;
-  seat.innerHTML = `
-    <div class="rank-badge">${rank}</div>
-    <div class="crown">${crown}</div>
-    <div class="user">${name}</div>
-    ${rank<=3?`<div class="success-badge">${successText(rank)}</div>`:""}
-    <div class="label">Wagered</div>
-    <div class="wager">${wager}</div>
-    <div class="label">Prize</div>
-    <div class="prize">${PRIZE_MAP[rank]||"$0.00"}</div>
-  `;
-  return seat;
-}
-function renderLeaderboard(data){
-  const podium=$("#podium"), others=$("#others-list");
-  podium.innerHTML=""; others.innerHTML="";
-  if(!data||data.error){ podium.innerHTML=`<p class="fade-in">Unable to load the leaderboard right now.</p>`; return;}
-  const p=data.podium||[];
-  if(p[1]) podium.appendChild(makeSeat(2,p[1].username,p[1].wager,"col-second"));
-  if(p[0]) podium.appendChild(makeSeat(1,p[0].username,p[0].wager,"col-first"));
-  if(p[2]) podium.appendChild(makeSeat(3,p[2].username,p[2].wager,"col-third"));
-  const list=data.others||[];
-  others.style.setProperty("--others-count", String(list.length||1));
-  list.forEach(o=>{
-    const li=document.createElement("li");
-    li.className="fade-in";
-    li.innerHTML=`
-      <div class="position">#${o.rank}</div>
-      <div class="username">${o.username}</div>
-      <div class="label emphasized">Wager</div>
-      <div class="wager">${o.wager}</div>
-      <div class="prize">${PRIZE_MAP[o.rank]||"$0.00"}</div>
-    `;
-    others.appendChild(li);
-  });
-}
+  async function fetchStream() {
+    try {
+      const r = await fetch('/stream', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`stream status ${r.status}`);
+      const j = await r.json();
+      const live = !!j.live;
+      const viewers = j.viewers ?? null;
 
-/* App boot */
-async function bootstrap(){
-  try{
-    const conf=await fetchJSON("/config");
-    startCountdown(conf.end_time);
+      liveEl.classList.remove('live', 'off', 'unk');
+      if (live) {
+        liveEl.classList.add('live');
+        text.textContent = 'LIVE NOW!';
+        if (typeof viewers === 'number') {
+          viewerChip.style.display = 'inline-flex';
+          viewerChip.textContent = `${fmtInt(viewers)} watching`;
+        } else {
+          viewerChip.style.display = 'none';
+        }
+      } else {
+        liveEl.classList.add('off');
+        text.textContent = 'Offline';
+        viewerChip.style.display = 'none';
+      }
+      console.info('[stream] status', j);
+    } catch (e) {
+      liveEl.classList.remove('live', 'off');
+      liveEl.classList.add('unk');
+      text.textContent = 'Status unavailable';
+      viewerChip.style.display = 'none';
+      console.warn('[stream] failed', e);
+    }
+  }
 
-    const initial=await fetchJSON("/data");
-    renderLeaderboard(initial);
+  async function initCountdown() {
+    try {
+      const r = await fetch('/config', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`config status ${r.status}`);
+      const j = await r.json();
+      const end = Number(j.end_time) || 0;
 
-    setInterval(async()=>{
-      try{ renderLeaderboard(await fetchJSON("/data",{cache:"no-store"})); }
-      catch(err){ console.error("[ERROR] refresh leaderboard:", err); }
-    }, (Number(conf.refresh_seconds||60))*1000);
+      function tick() {
+        const now = Math.floor(Date.now() / 1000);
+        let delta = Math.max(0, end - now);
 
-    // Live status every 30s
-    updateLiveStatus();
-    setInterval(updateLiveStatus, 30_000);
-  }catch(err){ console.error("[ERROR] bootstrap:",err); }
-}
+        const d = Math.floor(delta / 86400); delta -= d * 86400;
+        const h = Math.floor(delta / 3600);  delta -= h * 3600;
+        const m = Math.floor(delta / 60);    delta -= m * 60;
+        const s = delta;
 
-function setYear(){ const el=document.getElementById("year"); if(el) el.textContent=new Date().getFullYear(); }
+        dd.textContent = String(d).padStart(2, '0');
+        hh.textContent = String(h).padStart(2, '0');
+        mm.textContent = String(m).padStart(2, '0');
+        ss.textContent = String(s).padStart(2, '0');
+      }
 
-window.addEventListener("DOMContentLoaded", ()=>{ setYear(); bootstrap(); });
+      tick();
+      setInterval(tick, 1000);
+    } catch (e) {
+      console.warn('[countdown] failed', e);
+    }
+  }
+
+  function boot() {
+    if (yearOut) yearOut.textContent = new Date().getFullYear();
+
+    fetchData();
+    fetchStream();
+    initCountdown();
+
+    // refresh every 60s
+    setInterval(fetchData, 60_000);
+    setInterval(fetchStream, 60_000);
+  }
+
+  document.addEventListener('DOMContentLoaded', boot);
+})();
