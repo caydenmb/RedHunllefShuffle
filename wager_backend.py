@@ -6,7 +6,7 @@ import threading
 import time
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Optional
 
 import requests
 from flask import Flask, jsonify, render_template, request
@@ -19,7 +19,7 @@ CORS(app)
 # ----------------------- Config --------------------------
 API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
 
-# These can be future timestamps; we'll sanitize each time we fetch.
+# These can be future timestamps; we'll sanitize each fetch.
 START_TIME = int(os.getenv("START_TIME", "1755662460"))
 END_TIME   = int(os.getenv("END_TIME",   "1756871940"))
 
@@ -33,7 +33,7 @@ URL_LIFE  = "https://affiliate.shuffle.com/stats/{API_KEY}"
 os.makedirs("logs", exist_ok=True)
 
 LOGGER = logging.getLogger("wager")
-LOGGER.setLevel(logging.DEBUG)  # Keep DEBUG to see uncensored rank logs
+LOGGER.setLevel(logging.DEBUG)  # keep DEBUG to see uncensored rank logs
 fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
 
 sh = logging.StreamHandler()
@@ -67,7 +67,7 @@ def censor_username(username: str) -> str:
         return "******"
     return username[:2] + "*" * 6
 
-def _sanitize_window() -> tuple[int, int, str]:
+def _sanitize_window() -> Tuple[int, int, str]:
     now = int(time.time())
     start = START_TIME
     end = END_TIME
@@ -134,12 +134,11 @@ def _process_entries(entries: List[dict]) -> Dict[str, Any]:
     sorted_entries = sorted(filtered, key=_w, reverse=True)
 
     podium, others = [], []
-    top10_debug = []  # collect for one-line summary after loop
+    top10_debug = []
 
     for i, entry in enumerate(sorted_entries[:10], start=1):
         full = entry.get("username", "Unknown")
 
-        # Safe numeric parse for wager
         try:
             amt = float(entry.get("wagerAmount", 0) or 0)
         except (TypeError, ValueError) as exc:
@@ -148,20 +147,16 @@ def _process_entries(entries: List[dict]) -> Dict[str, Any]:
 
         wager_str = f"${amt:,.2f}"
 
-        # --- UNCENSORED ADMIN CONSOLE LOG (restored) ---
+        # UNCENSORED admin log
         log("debug", f"event=rank row={i} username_full='{full}' wager='{wager_str}'")
-
-        # also build one-line summary tuple for later
         top10_debug.append(f"{i}:{full}({wager_str})")
 
-        # Public/censored payload
         public = {"username": censor_username(full), "wager": wager_str}
         if i <= 3:
             podium.append(public)
         else:
             others.append({"rank": i, **public})
 
-    # One-line summary of top10 for easy auditing/grep
     if top10_debug:
         log("info", "event=top10.summary " + " ".join(top10_debug))
 
@@ -174,7 +169,7 @@ def _refresh_cache() -> None:
         with _cache_lock:
             _data_cache.update(processed)
 
-        # Snapshot (best-effort)
+        # snapshot (best-effort)
         try:
             with open("logs/latest_cache.json", "w", encoding="utf-8") as f:
                 json.dump(processed, f, indent=2)
@@ -193,28 +188,67 @@ def _schedule_refresh() -> None:
 _schedule_refresh()
 
 # ------------------- Kick live status -------------------
+def _extract_live_triplet(data: dict) -> Tuple[bool, Optional[str], Optional[int], str]:
+    # 1) livestream
+    ls = data.get("livestream")
+    if isinstance(ls, dict):
+        return (
+            bool(ls.get("is_live")),
+            ls.get("session_title") or ls.get("slug") or None,
+            ls.get("viewer_count") or ls.get("viewers") or None,
+            "livestream",
+        )
+
+    # 2) recent_livestream (often present even when live)
+    rls = data.get("recent_livestream")
+    if isinstance(rls, dict):
+        return (
+            bool(rls.get("is_live")),
+            rls.get("session_title") or rls.get("slug") or None,
+            rls.get("viewer_count") or rls.get("viewers") or None,
+            "recent_livestream",
+        )
+
+    # 3) root-level fallback
+    if isinstance(data, dict) and "is_live" in data:
+        return (
+            bool(data.get("is_live")),
+            data.get("session_title") or None,
+            data.get("viewer_count") or None,
+            "root",
+        )
+
+    return (False, None, None, "unknown")
+
 def _fetch_kick_status(channel: str = "redhunllef") -> Dict[str, Any]:
-    headers = {"User-Agent": "WagerRace-LiveStatus/1.0"}
+    """
+    Try Kick v2, then v1 channel endpoints. Parse multiple possible shapes.
+    """
+    headers = {
+        "User-Agent": "WagerRace-LiveStatus/1.1",
+        "Accept": "application/json",
+    }
     endpoints = [
         f"https://kick.com/api/v2/channels/{channel}",
         f"https://kick.com/api/v1/channels/{channel}",
     ]
+
+    last_exc: Optional[Exception] = None
     for url in endpoints:
         try:
             r = requests.get(url, headers=headers, timeout=10)
             if r.status_code != 200:
                 continue
             data = r.json()
-            live_info = data.get("livestream") if isinstance(data, dict) else None
-            if isinstance(live_info, dict):
-                is_live = bool(live_info.get("is_live"))
-                title = live_info.get("session_title") or live_info.get("slug") or None
-                viewers = live_info.get("viewer_count") or live_info.get("viewers") or None
-                return {"live": is_live, "title": title, "viewers": viewers, "source": "kick"}
-            if isinstance(data, dict) and "is_live" in data:
-                return {"live": bool(data["is_live"]), "title": data.get("session_title"), "viewers": data.get("viewer_count"), "source": "kick"}
+            is_live, title, viewers, src = _extract_live_triplet(data)
+            log("info", f"event=kick.parse shape={src} live={is_live} viewers={viewers}")
+            return {"live": is_live, "title": title, "viewers": viewers, "source": "kick"}
         except Exception as exc:
+            last_exc = exc
             log("warning", f"event=kick.status_try url='{url}' err='{exc}'")
+
+    if last_exc:
+        log("warning", f"event=kick.status_failed err='{last_exc}'")
     return {"live": False, "title": None, "viewers": None, "source": "unknown"}
 
 def get_stream_status() -> Dict[str, Any]:
@@ -261,7 +295,6 @@ def config():
 @app.route("/stream")
 def stream():
     return jsonify(get_stream_status())
-
 
 @app.errorhandler(404)
 def nf(e):
