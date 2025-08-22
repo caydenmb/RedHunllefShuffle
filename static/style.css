@@ -36,7 +36,7 @@ a:hover{color:#a5bbff}
 .live-status.live  .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
 .live-status.off   .dot{background:#666}
 .live-status.unk   .dot{background:#999}
-.live-status .text{font-weight:800;color:#fff}
+.live-status .text{font-weight:900;color:#fff}
 .live-status .live-cta{margin-left:.4rem;font-weight:900;color:#fff;text-decoration:none;background:#26c281;border-radius:999px;padding:.35rem .7rem}
 .live-status .live-cta:hover{filter:brightness(1.05)}
 .viewer-chip{display:none;align-items:center;gap:.35rem;background:#202b20;color:#d8ffd3;border:1px solid #2f4e2f;border-radius:999px;padding:.25rem .6rem;font-weight:800;font-size:.85rem}
@@ -96,35 +96,15 @@ a:hover{color:#a5bbff}
   display:grid; place-items:center; font-weight:900;
 }
 
-/* Medal container — show the emoji from JS and center it */
+/* Medal container — centered emoji from JS */
 .podium-seat .crown{
   width:100%;
-  display:block;
-  position:relative;
+  min-height:1.2em;           /* keeps space for emoji */
   font-size:clamp(2.2rem,5.5vw,3rem);
   line-height:1;
   margin-bottom:.15rem;
-  text-align:center; /* keeps 🥈/🥉 from JS centered */
-}
-
-/* For FIRST place only, hide the crown text and overlay 🥇 */
-.col-first .crown{
-  color:transparent;           /* hides the 👑 text that JS injects */
-  min-height:1.1em;            /* reserves space for the pseudo-element */
-}
-
-.col-first .crown::before{
-  content:"🥇";
-  position:absolute;
-  inset:0;                     /* fill the crown box */
-  display:flex;
-  align-items:center;
-  justify-content:center;      /* perfect centering */
-  font-size:inherit;           /* same size as .crown */
-  line-height:1;
-  z-index:2;                   /* ensure it sits above anything else */
-  pointer-events:none;
-  filter:drop-shadow(0 6px 16px rgba(0,0,0,.35));
+  display:block;
+  text-align:center;
 }
 
 /* Raise winner for podium feel */
@@ -203,4 +183,3 @@ a:hover{color:#a5bbff}
   .others-inline{grid-template-columns:1fr;overflow:visible}
   .others-inline li{height:auto}
 }
-
