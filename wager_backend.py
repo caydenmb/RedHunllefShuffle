@@ -19,7 +19,7 @@ CORS(app)
 # ----------------------- Config --------------------------
 API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
 
-# These can be future timestamps; we'll sanitize each fetch.
+# These may be future timestamps; we sanitize on each fetch.
 START_TIME = int(os.getenv("START_TIME", "1755662460"))
 END_TIME   = int(os.getenv("END_TIME",   "1756871940"))
 
@@ -33,7 +33,7 @@ URL_LIFE  = "https://affiliate.shuffle.com/stats/{API_KEY}"
 os.makedirs("logs", exist_ok=True)
 
 LOGGER = logging.getLogger("wager")
-LOGGER.setLevel(logging.DEBUG)  # keep DEBUG to see uncensored rank logs
+LOGGER.setLevel(logging.DEBUG)  # keep DEBUG to see rank logs
 fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
 
 sh = logging.StreamHandler()
@@ -94,6 +94,7 @@ def _fetch_from_shuffle() -> List[dict]:
         t0 = time.perf_counter()
         log("info", f"event=fetch.range start={start} end={end} reason={why} url='{url_range}'")
         r = requests.get(url_range, timeout=20, headers=headers)
+
         if r.status_code == 400:
             log("warning", f"event=fetch.range_http_400 retry=lifetime url='{url_life}'")
             r2 = requests.get(url_life, timeout=20, headers=headers)
@@ -138,7 +139,6 @@ def _process_entries(entries: List[dict]) -> Dict[str, Any]:
 
     for i, entry in enumerate(sorted_entries[:10], start=1):
         full = entry.get("username", "Unknown")
-
         try:
             amt = float(entry.get("wagerAmount", 0) or 0)
         except (TypeError, ValueError) as exc:
@@ -147,7 +147,7 @@ def _process_entries(entries: List[dict]) -> Dict[str, Any]:
 
         wager_str = f"${amt:,.2f}"
 
-        # UNCENSORED admin log
+        # UNCENSORED admin log per rank
         log("debug", f"event=rank row={i} username_full='{full}' wager='{wager_str}'")
         top10_debug.append(f"{i}:{full}({wager_str})")
 
@@ -184,13 +184,24 @@ def _schedule_refresh() -> None:
     _refresh_cache()
     threading.Timer(REFRESH_SECONDS, _schedule_refresh).start()
 
-# Kick off background refresher once
+# Kick off the background refresher once
 _schedule_refresh()
 
 # ------------------- Kick live status -------------------
 def _extract_live_triplet(data: dict) -> Tuple[bool, Optional[str], Optional[int], str]:
-    # 1) livestream
-    ls = data.get("livestream")
+    # 0) If payload itself looks like a livestream object
+    if isinstance(data, dict) and (
+        "is_live" in data and ("session_title" in data or "viewer_count" in data or "slug" in data)
+    ):
+        return (
+            bool(data.get("is_live")),
+            data.get("session_title") or data.get("slug") or None,
+            data.get("viewer_count") or data.get("viewers") or None,
+            "livestream_root",
+        )
+
+    # 1) livestream inside channel payloads
+    ls = data.get("livestream") if isinstance(data, dict) else None
     if isinstance(ls, dict):
         return (
             bool(ls.get("is_live")),
@@ -199,8 +210,8 @@ def _extract_live_triplet(data: dict) -> Tuple[bool, Optional[str], Optional[int
             "livestream",
         )
 
-    # 2) recent_livestream (often present even when live)
-    rls = data.get("recent_livestream")
+    # 2) recent_livestream fallback
+    rls = data.get("recent_livestream") if isinstance(data, dict) else None
     if isinstance(rls, dict):
         return (
             bool(rls.get("is_live")),
@@ -221,14 +232,13 @@ def _extract_live_triplet(data: dict) -> Tuple[bool, Optional[str], Optional[int
     return (False, None, None, "unknown")
 
 def _fetch_kick_status(channel: str = "redhunllef") -> Dict[str, Any]:
-    """
-    Try Kick v2, then v1 channel endpoints. Parse multiple possible shapes.
-    """
     headers = {
-        "User-Agent": "WagerRace-LiveStatus/1.1",
+        "User-Agent": "WagerRace-LiveStatus/1.2",
         "Accept": "application/json",
     }
     endpoints = [
+        f"https://kick.com/api/v2/channels/{channel}/livestream",
+        f"https://kick.com/api/v1/channels/{channel}/livestream",
         f"https://kick.com/api/v2/channels/{channel}",
         f"https://kick.com/api/v1/channels/{channel}",
     ]
@@ -237,18 +247,28 @@ def _fetch_kick_status(channel: str = "redhunllef") -> Dict[str, Any]:
     for url in endpoints:
         try:
             r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200:
+
+            # livestream endpoints can 204/404 when offline
+            if r.status_code in (204, 404):
+                log("info", f"event=kick.fetch url='{url}' status={r.status_code} note='offline_or_no_stream'")
                 continue
+
+            if r.status_code != 200:
+                log("warning", f"event=kick.fetch url='{url}' status={r.status_code}")
+                continue
+
             data = r.json()
-            is_live, title, viewers, src = _extract_live_triplet(data)
-            log("info", f"event=kick.parse shape={src} live={is_live} viewers={viewers}")
+            is_live, title, viewers, shape = _extract_live_triplet(data)
+            log("info", f"event=kick.parse url='{url}' shape={shape} live={is_live} viewers={viewers}")
             return {"live": is_live, "title": title, "viewers": viewers, "source": "kick"}
+
         except Exception as exc:
             last_exc = exc
             log("warning", f"event=kick.status_try url='{url}' err='{exc}'")
 
     if last_exc:
         log("warning", f"event=kick.status_failed err='{last_exc}'")
+
     return {"live": False, "title": None, "viewers": None, "source": "unknown"}
 
 def get_stream_status() -> Dict[str, Any]:
