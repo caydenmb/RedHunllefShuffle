@@ -96,35 +96,27 @@ a:hover{color:#a5bbff}
   display:grid; place-items:center; font-weight:900;
 }
 
-/* BIGGER MEDALS — guaranteed centered */
+/* Medal container — show the emoji from JS and center it */
 .podium-seat .crown{
   width:100%;
-  height:1em;                 /* reserve vertical space for the medal */
   font-size:clamp(2.2rem,5.5vw,3rem);
   line-height:1;
   margin-bottom:.15rem;
   display:block;
-  text-align:center;          /* fallback centering for text */
-  position:relative;          /* needed for ::before absolute centering */
+  text-align:center; /* centers 🥈/🥉 text from JS */
 }
 
-/* Force medals via CSS and hide any text JS may insert */
-.col-first .crown,
-.col-second .crown,
-.col-third .crown{ color:transparent; }
-
+/* Replace JS crown for FIRST with 🥇 via CSS only */
+.col-first .crown{
+  position:relative;
+  color:transparent;           /* hide the 👑 text from JS only for first */
+}
 .col-first .crown::before{
   content:"🥇";
-  position:absolute; left:50%; transform:translateX(-50%);
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
   filter:drop-shadow(0 6px 16px rgba(0,0,0,.35));
-}
-.col-second .crown::before{
-  content:"🥈";
-  position:absolute; left:50%; transform:translateX(-50%);
-}
-.col-third .crown::before{
-  content:"🥉";
-  position:absolute; left:50%; transform:translateX(-50%);
 }
 
 /* Raise winner for podium feel */
