@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Shuffle.com Wager Race – RedHunllef</title>
+  <title>RedHunllef</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Live Shuffle.com wager race leaderboard with real-time updates." />
   <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
@@ -27,13 +27,13 @@
   <section class="hero">
     <div class="container hero-inner">
       <h2 class="hero-heading">
-        RedHunllef: Gambling, gaming, and variety streamer.
+        RedHunllef: Gambling, gaming, and variety streamer!
       </h2>
 
       <!-- Live Status Badge -->
       <div id="liveStatus" class="live-status" role="status" aria-live="polite">
         <span class="dot"></span>
-        <span class="text">Checking live status…</span>
+        <span class="text">Checking…</span>
         <span class="viewer-chip" style="display:none"></span>
         <a class="live-cta" href="https://kick.com/redhunllef" target="_blank" rel="noopener">Open Kick</a>
       </div>
@@ -54,7 +54,7 @@
   <!-- Sponsors -->
   <section class="sponsors container">
     <h2 class="section-title">Sponsors</h2>
-    <p class="section-subtitle">Thanks to our sponsors for supporting the streams.</p>
+    <p class="section-subtitle">Thanks to our sponsors for supporting the streams!</p>
     <div class="sponsors-grid">
       <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank" rel="noopener">Shuffle.com</a>
       <a href="https://runestake.com/r/Red" class="sponsor-btn" target="_blank" rel="noopener">RuneStake.com</a>
@@ -72,10 +72,10 @@
         <p><strong>Check out the wager placements below!</strong> — no refresh needed.</p>
       </div>
 
-      <!-- Top 3 (rendered by script.js) -->
+      <!-- Top 3 -->
       <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
 
-      <!-- 4–10 (rendered by script.js) -->
+      <!-- 4–10 -->
       <ul id="others-list" class="others-inline" aria-label="Ranks 4 to 10"></ul>
     </div>
   </section>
@@ -103,7 +103,6 @@
     </div>
   </footer>
 
-  <!-- IMPORTANT: load JS via Flask static -->
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </body>
 </html>
