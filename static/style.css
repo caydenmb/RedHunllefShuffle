@@ -1,9 +1,3 @@
-/*
-Removes the floating iframe styles and adds a polished "live status" badge.
-Keeps all previously-delivered leaderboard layout, podium prominence, and
-no-horizontal-scroll behavior for 4–10.
-*/
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
 
 :root{
@@ -33,11 +27,7 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 .hero-heading{font-size:clamp(1.6rem,4.6vw,2.3rem);font-weight:900;letter-spacing:-.01em;margin-bottom:.8rem}
 
 /* Live status badge */
-.live-status{
-  display:inline-flex;align-items:center;gap:.6rem;margin:.25rem 0 1.1rem;
-  background:var(--card-2);border:1px solid var(--border);border-radius:999px;
-  padding:.45rem .75rem .45rem .55rem;box-shadow:var(--shadow)
-}
+.live-status{display:inline-flex;align-items:center;gap:.6rem;margin:.25rem 0 1.1rem;background:var(--card-2);border:1px solid var(--border);border-radius:999px;padding:.45rem .75rem .45rem .55rem;box-shadow:var(--shadow)}
 .live-status .dot{width:.65rem;height:.65rem;border-radius:999px;background:#999;animation:none}
 .live-status.live  .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
 .live-status.off   .dot{background:#666}
@@ -45,6 +35,21 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 .live-status .text{font-weight:800;color:#fff}
 .live-status .live-cta{margin-left:.4rem;font-weight:900;color:#fff;text-decoration:none;background:#26c281;border-radius:999px;padding:.35rem .7rem}
 .live-status .live-cta:hover{filter:brightness(1.05)}
+/* NEW: viewer chip */
+.viewer-chip{
+  display:none; /* made visible by JS when live */
+  align-items:center;
+  gap:.35rem;
+  background:#202b20;
+  color:#d8ffd3;
+  border:1px solid #2f4e2f;
+  border-radius:999px;
+  padding:.25rem .6rem;
+  font-weight:800;
+  font-size:.85rem;
+}
+
+/* Pulse anim for live dot */
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 
 /* Countdown pills */
