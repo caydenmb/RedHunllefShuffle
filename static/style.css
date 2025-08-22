@@ -99,23 +99,31 @@ a:hover{color:#a5bbff}
 /* Medal container — show the emoji from JS and center it */
 .podium-seat .crown{
   width:100%;
+  display:block;
+  position:relative;
   font-size:clamp(2.2rem,5.5vw,3rem);
   line-height:1;
   margin-bottom:.15rem;
-  display:block;
-  text-align:center; /* centers 🥈/🥉 text from JS */
+  text-align:center; /* keeps 🥈/🥉 from JS centered */
 }
 
-/* Replace JS crown for FIRST with 🥇 via CSS only */
+/* For FIRST place only, hide the crown text and overlay 🥇 */
 .col-first .crown{
-  position:relative;
-  color:transparent;           /* hide the 👑 text from JS only for first */
+  color:transparent;           /* hides the 👑 text that JS injects */
+  min-height:1.1em;            /* reserves space for the pseudo-element */
 }
+
 .col-first .crown::before{
   content:"🥇";
   position:absolute;
-  left:50%;
-  transform:translateX(-50%);
+  inset:0;                     /* fill the crown box */
+  display:flex;
+  align-items:center;
+  justify-content:center;      /* perfect centering */
+  font-size:inherit;           /* same size as .crown */
+  line-height:1;
+  z-index:2;                   /* ensure it sits above anything else */
+  pointer-events:none;
   filter:drop-shadow(0 6px 16px rgba(0,0,0,.35));
 }
 
@@ -195,3 +203,4 @@ a:hover{color:#a5bbff}
   .others-inline{grid-template-columns:1fr;overflow:visible}
   .others-inline li{height:auto}
 }
+
