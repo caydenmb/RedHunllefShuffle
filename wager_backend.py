@@ -20,12 +20,25 @@ CORS(app)
 # ----------------------- Config --------------------------
 API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
 
-# These may be future timestamps; we sanitize on each fetch.
+# Shuffle time window (sanitized each fetch)
 START_TIME = int(os.getenv("START_TIME", "1755662460"))
 END_TIME   = int(os.getenv("END_TIME",   "1756871940"))
 
 REFRESH_SECONDS = int(os.getenv("REFRESH_SECONDS", "60"))
 PORT = int(os.getenv("PORT", "8080"))
+
+# Kick OAuth credentials (use ENV in production)
+KICK_CLIENT_ID = os.getenv("KICK_CLIENT_ID", "01K39PNSMPVX2PS4EEJ2K69EVF")
+KICK_CLIENT_SECRET = os.getenv(
+    "KICK_CLIENT_SECRET",
+    "47970da4c8790427e09eaebd1b7c8d522ef233c54bbd896514c7f562c66ca74e",
+)
+KICK_CHANNEL_SLUG = os.getenv("KICK_CHANNEL_SLUG", "redhunllef")
+
+# Official API base
+_KICK_API_BASE = "https://api.kick.com/public/v1"
+# OAuth server
+_KICK_OAUTH_TOKEN = "https://id.kick.com/oauth/token"
 
 URL_RANGE = "https://affiliate.shuffle.com/stats/{API_KEY}?startTime={start}&endTime={end}"
 URL_LIFE  = "https://affiliate.shuffle.com/stats/{API_KEY}"
@@ -56,11 +69,15 @@ log("info", "event=server.boot msg='starting backend'")
 _cache_lock = threading.Lock()
 _data_cache: Dict[str, Any] = {"podium": [], "others": []}
 
-# Stream status cache
+# Stream status cache (ttl 60s when API OK, 120s on fallback/error)
 _stream_lock = threading.Lock()
 _stream_cache: Dict[str, Any] = {"live": False, "title": None, "viewers": None, "updated": 0, "source": "unknown"}
-_STREAM_TTL = 25  # seconds
-_STREAM_ERROR_TTL = 45  # be gentler on failures
+_STREAM_TTL_OK = 60
+_STREAM_TTL_ERROR = 120
+
+# Kick app token cache
+_token_lock = threading.Lock()
+_kick_token: Dict[str, Any] = {"access_token": None, "expires_at": 0}
 
 # ----------------------- Helpers ------------------------
 def censor_username(username: str) -> str:
@@ -70,6 +87,7 @@ def censor_username(username: str) -> str:
     return username[:2] + "*" * 6
 
 def _sanitize_window() -> Tuple[int, int, str]:
+    """Clamp window to now; fallback to last 14d if invalid."""
     now = int(time.time())
     start = START_TIME
     end = END_TIME
@@ -86,6 +104,7 @@ def _sanitize_window() -> Tuple[int, int, str]:
 
     return start, end, reason
 
+# ---------------- Shuffle fetch ----------------
 def _fetch_from_shuffle() -> List[dict]:
     headers = {"User-Agent": "Shuffle-WagerRace/Final"}
     start, end, why = _sanitize_window()
@@ -190,13 +209,10 @@ def _schedule_refresh() -> None:
 _schedule_refresh()
 
 # ------------------- Kick live status -------------------
-# Stronger, browser-like headers
+# Browser-like headers for HTML fallback
 _KICK_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) "
-        "Gecko/20100101 Firefox/124.0"
-    ),
-    "Accept": "application/json,text/html;q=0.9,*/*;q=0.8",
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0"),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.8",
     "Cache-Control": "no-cache",
     "Pragma": "no-cache",
@@ -205,55 +221,64 @@ _KICK_HEADERS = {
     "Referer": "https://kick.com/",
 }
 
-_NEXT_JSON_RE = re.compile(
-    r'(?s)<script[^>]+type="application/json"[^>]*>\s*(\{.*?\})\s*</script>'
-)
+# HTML scrape helpers (fallback)
+_NEXT_JSON_RE = re.compile(r'(?s)<script[^>]+type="application/json"[^>]*>\s*(\{.*?\})\s*</script>')
 _BOOL_RE = re.compile(r'"is_live"\s*:\s*(true|false)', re.IGNORECASE)
-_TITLE_RE = re.compile(r'"session_title"\s*:\s*"([^"]+)"')
+_TITLE_RE = re.compile(r'"(session_title|stream_title)"\s*:\s*"([^"]+)"')
 _VIEWERS_RE = re.compile(r'"viewer_count"\s*:\s*(\d+)', re.IGNORECASE)
 
-def _extract_live_triplet(data: dict) -> Tuple[bool, Optional[str], Optional[int], str]:
-    # 0) If payload itself looks like a livestream object
-    if isinstance(data, dict) and (
-        "is_live" in data and ("session_title" in data or "viewer_count" in data or "slug" in data)
-    ):
-        return (
-            bool(data.get("is_live")),
-            data.get("session_title") or data.get("slug") or None,
-            data.get("viewer_count") or data.get("viewers") or None,
-            "livestream_root",
-        )
+def _extract_live_from_api_channel_payload(data: dict) -> Tuple[bool, Optional[str], Optional[int], str]:
+    if not isinstance(data, dict):
+        return (False, None, None, "kick-api")
+    stream = data.get("stream") or {}
+    is_live = bool(stream.get("is_live"))
+    title = data.get("stream_title") or stream.get("title") or None
+    viewers = stream.get("viewer_count") or None
+    try:
+        viewers = int(viewers) if viewers is not None else None
+    except Exception:
+        viewers = None
+    return (is_live, title, viewers, "kick-api")
 
-    # 1) livestream inside channel payloads
-    ls = data.get("livestream") if isinstance(data, dict) else None
-    if isinstance(ls, dict):
-        return (
-            bool(ls.get("is_live")),
-            ls.get("session_title") or ls.get("slug") or None,
-            ls.get("viewer_count") or ls.get("viewers") or None,
-            "livestream",
-        )
+def get_kick_app_token(force_refresh: bool = False) -> Optional[str]:
+    # Basic guard
+    if not KICK_CLIENT_ID or not KICK_CLIENT_SECRET:
+        log("warning", "event=kick.token.missing msg='client id/secret not configured'")
+        return None
 
-    # 2) recent_livestream fallback
-    rls = data.get("recent_livestream") if isinstance(data, dict) else None
-    if isinstance(rls, dict):
-        return (
-            bool(rls.get("is_live")),
-            rls.get("session_title") or rls.get("slug") or None,
-            rls.get("viewer_count") or rls.get("viewers") or None,
-            "recent_livestream",
-        )
+    now = time.time()
+    with _token_lock:
+        token = _kick_token.get("access_token")
+        exp = float(_kick_token.get("expires_at") or 0)
+        # Refresh if forced or within 30s of expiry
+        if token and not force_refresh and (exp - now) > 30:
+            return token
 
-    # 3) root-level fallback
-    if isinstance(data, dict) and "is_live" in data:
-        return (
-            bool(data.get("is_live")),
-            data.get("session_title") or None,
-            data.get("viewer_count") or None,
-            "root",
-        )
-
-    return (False, None, None, "unknown")
+        try:
+            payload = {
+                "grant_type": "client_credentials",
+                "client_id": KICK_CLIENT_ID,
+                "client_secret": KICK_CLIENT_SECRET,
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            r = requests.post(_KICK_OAUTH_TOKEN, data=payload, headers=headers, timeout=10)
+            if r.status_code != 200:
+                log("warning", f"event=kick.token.status status={r.status_code} body='{r.text[:200]}'")
+                return None
+            j = r.json()
+            access = j.get("access_token")
+            expires_in = int(j.get("expires_in") or 3600)
+            if not access:
+                log("warning", "event=kick.token.no_access_token")
+                return None
+            _kick_token["access_token"] = access
+            # Add a small safety buffer (10s)
+            _kick_token["expires_at"] = now + max(expires_in - 10, 30)
+            log("info", "event=kick.token.ok msg='received app token'")
+            return access
+        except Exception as exc:
+            log("warning", f"event=kick.token.failed err='{exc}'")
+            return None
 
 def _scrape_kick_html(channel: str) -> Dict[str, Any]:
     url_page = f"https://kick.com/{channel}"
@@ -264,19 +289,14 @@ def _scrape_kick_html(channel: str) -> Dict[str, Any]:
             return {"live": False, "title": None, "viewers": None, "source": "kick-html"}
 
         html = r.text or ""
-        # Try to find an application/json script first (Next.js embeds)
-        m = _NEXT_JSON_RE.search(html)
-        if m:
-            try:
-                payload = json.loads(m.group(1))
-                # Best-effort walk to find livestream flags if present
-                # Because structures can change, we also fall back to regex below.
-                # If you have a stable path, plug it here.
-                # Fallback to regex parse if we can't confidently locate fields.
-            except Exception as ex:
-                log("warning", f"event=kick.html_json_parse_failed err='{ex}'")
+        # Try structured JSON first (Next.js style); if unknown, we rely on regex fallbacks.
+        try:
+            m = _NEXT_JSON_RE.search(html)
+            if m:
+                _ = json.loads(m.group(1))  # reserved for future stable path parsing
+        except Exception as ex:
+            log("warning", f"event=kick.html_json_parse_failed err='{ex}'")
 
-        # Regex fallback for robustness across template changes
         is_live = False
         title = None
         viewers = None
@@ -287,7 +307,7 @@ def _scrape_kick_html(channel: str) -> Dict[str, Any]:
 
         tm = _TITLE_RE.search(html)
         if tm:
-            title = tm.group(1).encode('utf-8', 'ignore').decode('utf-8', 'ignore')
+            title = tm.group(2).encode('utf-8', 'ignore').decode('utf-8', 'ignore')
 
         vm = _VIEWERS_RE.search(html)
         if vm:
@@ -302,66 +322,50 @@ def _scrape_kick_html(channel: str) -> Dict[str, Any]:
         log("warning", f"event=kick.html_fetch_failed url='{url_page}' err='{exc}'")
         return {"live": False, "title": None, "viewers": None, "source": "unknown"}
 
-def _fetch_kick_status(channel: str = "redhunllef") -> Dict[str, Any]:
-    endpoints = [
-        f"https://kick.com/api/v2/channels/{channel}/livestream",
-        f"https://kick.com/api/v1/channels/{channel}/livestream",
-        f"https://kick.com/api/v2/channels/{channel}",
-        f"https://kick.com/api/v1/channels/{channel}",
-    ]
-
-    saw_block = False
-    last_exc: Optional[Exception] = None
-
-    for url in endpoints:
+def _fetch_kick_status(channel: str = KICK_CHANNEL_SLUG) -> Dict[str, Any]:
+    token = get_kick_app_token(force_refresh=False)
+    if token:
         try:
-            r = requests.get(url, headers=_KICK_HEADERS, timeout=10)
+            url = f"{_KICK_API_BASE}/channels"
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+            params = [("slug", channel)]
+            log("info", f"event=kick.api.fetch url='{url}' params={params}")
+            r = requests.get(url, headers=headers, params=params, timeout=10)
+            if r.status_code == 401:
+                # Token may be expired/invalid; refresh once and retry
+                log("warning", "event=kick.api.unauthorized msg='refreshing token and retrying'")
+                token2 = get_kick_app_token(force_refresh=True)
+                if token2:
+                    headers["Authorization"] = f"Bearer {token2}"
+                    r = requests.get(url, headers=headers, params=params, timeout=10)
 
-            # CDN "blocked" codes that shouldn't count as live/offline answer
-            if r.status_code in (401, 403, 429):
-                saw_block = True
-                log("warning", f"event=kick.fetch url='{url}' status={r.status_code} note='blocked'")
-                continue
+            if r.status_code == 200:
+                j = r.json()
+                data = (j.get("data") or [])
+                if data:
+                    is_live, title, viewers, src = _extract_live_from_api_channel_payload(data[0])
+                    log("info", f"event=kick.api.parse live={is_live} viewers={viewers}")
+                    return {"live": is_live, "title": title, "viewers": viewers, "source": src}
+                log("info", "event=kick.api.empty msg='no channel data for slug'")
+                return {"live": False, "title": None, "viewers": None, "source": "kick-api"}
 
-            # livestream endpoints can 204/404 when offline
-            if r.status_code in (204, 404):
-                log("info", f"event=kick.fetch url='{url}' status={r.status_code} note='offline_or_no_stream'")
-                continue
-
-            if r.status_code != 200:
-                log("warning", f"event=kick.fetch url='{url}' status={r.status_code}")
-                continue
-
-            data = r.json()
-            is_live, title, viewers, shape = _extract_live_triplet(data)
-            log("info", f"event=kick.parse url='{url}' shape={shape} live={is_live} viewers={viewers}")
-            return {"live": is_live, "title": title, "viewers": viewers, "source": "kick"}
-
+            log("warning", f"event=kick.api.status status={r.status_code} body='{r.text[:200]}'")
+            # fall through to HTML
         except Exception as exc:
-            last_exc = exc
-            log("warning", f"event=kick.status_try url='{url}' err='{exc}'")
+            log("warning", f"event=kick.api.failed err='{exc}'")
+            # fall through to HTML
 
-    # If all JSON endpoints failed and at least one was blocked, try HTML scraping
-    if saw_block:
-        log("info", "event=kick.fallback_html msg='JSON endpoints blocked; scraping channel page'")
-        return _scrape_kick_html(channel)
-
-    if last_exc:
-        log("warning", f"event=kick.status_failed err='{last_exc}'")
-
-    return {"live": False, "title": None, "viewers": None, "source": "unknown"}
+    # HTML fallback
+    return _scrape_kick_html(channel)
 
 def get_stream_status() -> Dict[str, Any]:
     now = int(time.time())
     with _stream_lock:
-        # Respect TTL (use longer TTL when last fetch was an error-based fallback)
-        ttl = _STREAM_TTL
-        if _stream_cache.get("source") in ("unknown", "kick-html"):
-            ttl = _STREAM_ERROR_TTL
+        ttl = _STREAM_TTL_OK if _stream_cache.get("source") == "kick-api" else _STREAM_TTL_ERROR
         if now - int(_stream_cache.get("updated", 0)) < ttl:
             return dict(_stream_cache)
 
-    status = _fetch_kick_status("redhunllef")
+    status = _fetch_kick_status(KICK_CHANNEL_SLUG)
     status["updated"] = now
     with _stream_lock:
         _stream_cache.update(status)
