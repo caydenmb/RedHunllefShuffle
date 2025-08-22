@@ -72,7 +72,10 @@ a:hover{color:#a5bbff}
   margin:1rem 0 1.4rem;
 }
 
+/* Use CSS variables to combine base lift + hover lift */
 .podium-seat{
+  --lift: 0px;         /* base podium raise */
+  --hover-lift: 0px;   /* extra motion on hover */
   position:relative;
   background:var(--card-2);
   border:1px solid var(--border);
@@ -84,10 +87,16 @@ a:hover{color:#a5bbff}
   align-items:center;
   justify-content:center;
   gap:.25rem;
-  transition:transform .15s ease,box-shadow .15s ease;
+  cursor: default;     /* looks non-clickable */
+  transform: translateY(calc(var(--lift) + var(--hover-lift)));
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
   overflow:visible;
 }
-.podium-seat:hover{ transform:translateY(-3px); }
+.podium-seat:hover{
+  --hover-lift: -4px;                     /* gentle float */
+  box-shadow:0 12px 36px rgba(0,0,0,.55); /* soft glow, not a button */
+  filter: brightness(1.02);
+}
 
 .podium-seat .rank-badge{
   position:absolute; top:10px; left:10px;
@@ -99,7 +108,7 @@ a:hover{color:#a5bbff}
 /* Medal container — centered emoji from JS */
 .podium-seat .crown{
   width:100%;
-  min-height:1.2em;           /* keeps space for emoji */
+  min-height:1.2em;
   font-size:clamp(2.2rem,5.5vw,3rem);
   line-height:1;
   margin-bottom:.15rem;
@@ -107,20 +116,21 @@ a:hover{color:#a5bbff}
   text-align:center;
 }
 
-/* Raise winner for podium feel */
+/* Base “podium” raise per place (now via --lift) */
 .podium-seat.col-first{
+  --lift: -16px;
   min-height:clamp(220px,28vw,260px);
   border-color:var(--gold);
   box-shadow:0 0 32px #ffd70033,var(--shadow);
-  transform:translateY(-16px);
 }
 .podium-seat.col-second{
+  --lift: -6px;
   min-height:clamp(170px,24vw,210px);
   border-color:var(--silver);
   box-shadow:0 0 26px #c0c0c033,var(--shadow);
-  transform:translateY(-6px);
 }
 .podium-seat.col-third{
+  --lift: 0px;
   min-height:clamp(150px,22vw,196px);
   border-color:var(--bronze);
   box-shadow:0 0 22px #cd7f3233,var(--shadow);
@@ -142,12 +152,29 @@ a:hover{color:#a5bbff}
   overflow:hidden;
 }
 .others-inline li{
-  position:relative; background:var(--card-2); border:1px solid var(--border);
-  border-radius:12px; box-shadow:var(--shadow); padding:2.2rem .9rem 1rem;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:.25rem; height:190px; transition:transform .15s ease; overflow:hidden;
+  --hover-lift: 0px;
+  position:relative;
+  background:var(--card-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:2.2rem .9rem 1rem;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.25rem;
+  height:190px;
+  cursor: default;
+  transform: translateY(var(--hover-lift));
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  overflow:hidden;
 }
-.others-inline li:hover{ transform:translateY(-2px); }
+.others-inline li:hover{
+  --hover-lift: -3px;                          /* subtle movement */
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  filter: brightness(1.015);
+}
 .others-inline .position{
   position:absolute; top:10px; left:10px; background:#000; color:#fff;
   border:2px solid #333; border-radius:999px; padding:.1rem .5rem; font-weight:900;
