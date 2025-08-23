@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import json
 import time
+import json
 import sqlite3
 import hashlib
 import secrets
@@ -12,9 +12,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import requests
-from flask import (
-    Flask, request, jsonify, render_template
-)
+from flask import Flask, request, jsonify, render_template
 
 APP_NAME = "redhunllefshuffle"
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -26,24 +24,22 @@ logging.basicConfig(
 )
 log = logging.getLogger(APP_NAME)
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Config
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 RACE_END_EPOCH = int(os.environ.get("RACE_END_EPOCH", str(int(time.time()) + 11*24*3600)))
 KICK_CHANNEL = os.environ.get("KICK_CHANNEL", "redhunllef")
 KICK_CLIENT_ID = os.environ.get("KICK_CLIENT_ID", "")
 KICK_CLIENT_SECRET = os.environ.get("KICK_CLIENT_SECRET", "")
 REFRESH_SECONDS = 60
 
-# --- Writable analytics DB path (instance folder) ---
-# If ANALYTICS_DB is defined, use it; else place DB in Flask instance dir.
+# Writable analytics DB in Flask's instance folder
 os.makedirs(app.instance_path, exist_ok=True)
-DEFAULT_DB = os.path.join(app.instance_path, "analytics.sqlite3")
-AN_DB = os.environ.get("ANALYTICS_DB", DEFAULT_DB)
+AN_DB = os.environ.get("ANALYTICS_DB", os.path.join(app.instance_path, "analytics.sqlite3"))
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def mask_username(u: str) -> str:
     u = (u or "").strip()
     return (u[:2] + "******") if len(u) >= 2 else (u or "*") + "******"
@@ -54,9 +50,9 @@ def money(n) -> str:
     except Exception:
         return "$0.00"
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # In-memory state
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 state = {
     "data": {"podium": [], "others": [], "updated_at": 0},
     "stream": {"live": False, "viewers": None, "source": "unknown", "updated_at": 0},
@@ -64,9 +60,9 @@ state = {
     "health": {"kick_ok": False, "shuffle_ok": True, "cache_ok": True, "updated_at": 0}
 }
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Analytics (stdlib only)
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 BOT_RE = re.compile(r"(bot|crawler|spider|fetch|monitor|pingdom|curl|wget)", re.I)
 MOBILE_RE = re.compile(r"(iphone|android|mobile)", re.I)
 TABLET_RE = re.compile(r"(ipad|tablet)", re.I)
@@ -194,11 +190,14 @@ def track_visit():
 
 @app.before_request
 def _before():
+    # Start background threads once (Flask 3 safe)
+    start_background_threads_once()
+    # Track visits for '/' and '/stats'
     track_visit()
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Demo leaderboard source (replace with your real data pull)
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _demo_wager_data():
     return [
         {"username": "swizzle", "wager": 228857.91},
@@ -249,9 +248,9 @@ def refresh_wager_cache():
             log.error(f"leaderboard.refresh_failed err={exc!r}")
         time.sleep(REFRESH_SECONDS)
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Kick live status (token optional; fallback to HTML sniff)
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _kick_get_token():
     if not (KICK_CLIENT_ID and KICK_CLIENT_SECRET):
         return None
@@ -333,14 +332,16 @@ def refresh_stream_cache():
             log.error(f"stream.refresh_failed err={exc!r}")
         time.sleep(REFRESH_SECONDS)
 
-# ---------------------------------------------------------------------------
-# One-time background start guard
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# One-time background start guard (Flask 3 safe)
+# -----------------------------------------------------------------------------
 _bg_lock = threading.Lock()
 _bg_started = False
 
 def start_background_threads_once():
     global _bg_started
+    if _bg_started:
+        return
     with _bg_lock:
         if _bg_started:
             return
@@ -350,13 +351,9 @@ def start_background_threads_once():
         _bg_started = True
         log.info("background.threads_started interval=%ss", REFRESH_SECONDS)
 
-@app.before_first_request
-def _warmup():
-    start_background_threads_once()
-
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Routes / APIs
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -386,7 +383,6 @@ def stats_data():
     day_30_ago = day_today - timedelta(days=30)
     start_48h = now - 48*3600
 
-    # Default empty payload (in case DB cannot open)
     payload = {
         "kpi": {
             "total_visits": 0, "unique_30d": 0, "online_now": 0,
@@ -398,12 +394,7 @@ def stats_data():
                 "updated_at": state["health"]["updated_at"],
             }
         },
-        "series": {
-            "visits_per_day": [],
-            "top_referrers": [],
-            "devices": {},
-            "stream_timeline": [],
-        },
+        "series": {"visits_per_day": [], "top_referrers": [], "devices": {}, "stream_timeline": []},
         "leaderboard": {"podium_churn_24h": 0, "biggest_climb": None}
     }
 
@@ -470,10 +461,10 @@ def stats_data():
 
     return jsonify(payload)
 
-# ---------------------------------------------------------------------------
-# Dev entrypoint
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Dev entrypoint (works for `python wager_backend.py`)
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Ensure background threads also start when running `python wager_backend.py`
+    # Ensure background threads also start when running directly
     start_background_threads_once()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
