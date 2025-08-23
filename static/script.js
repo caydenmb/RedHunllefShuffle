@@ -6,12 +6,12 @@
   const othersEl = $('#others-list');
   const liveEl = $('#liveStatus');
   const viewerChip = $('.viewer-chip', liveEl);
-  const dot = $('.dot', liveEl);
   const text = $('.text', liveEl);
 
   const dd = $('#dd'), hh = $('#hh'), mm = $('#mm'), ss = $('#ss');
   const yearOut = $('#year');
 
+  // Prize table displayed publicly (keep in sync with backend rules)
   const PRIZES = {
     1: '$1,700.00',
     2: '$900.00',
@@ -25,66 +25,119 @@
     10: '$0.00'
   };
 
+  /** Convert a currency string like "$5,000.00" to a number 5000.00 */
+  function moneyToNumber(s) {
+    if (typeof s === 'number') return s;
+    if (!s) return 0;
+    const n = parseFloat(String(s).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  /** Format integer with commas (e.g., 12345 -> "12,345") */
   function fmtInt(n) {
     return (n ?? 0).toLocaleString();
   }
 
-  function buildPodium(podium) {
-    // Expected: array length 0..3, each { username, wager }
-    podiumEl.innerHTML = '';
+  /** Build the podium (top 3). Input may be unsorted; we sort by wager DESC. */
+  function buildPodium(podiumRaw) {
+    // Normalize entries: { username, wager } where wager is a currency string/number
+    const podium = (podiumRaw || []).slice().map(e => ({
+      username: e?.username ?? '--',
+      wagerStr: e?.wager ?? '$0.00',
+      wagerNum: moneyToNumber(e?.wager)
+    }));
 
-    const ranks = [
-      { cls: 'col-second', label: 2, medal: '🥈' },
-      { cls: 'col-first',  label: 1, medal: '🥇' },
-      { cls: 'col-third',  label: 3, medal: '🥉' }
+    // Sort by wager descending; take top 3
+    podium.sort((a, b) => b.wagerNum - a.wagerNum);
+    const top3 = podium.slice(0, 3);
+
+    // Map to proper positions: 1st, 2nd, 3rd
+    const slots = [
+      { place: 1, cls: 'col-first',  medal: '🥇' },
+      { place: 2, cls: 'col-second', medal: '🥈' },
+      { place: 3, cls: 'col-third',  medal: '🥉' }
     ];
 
-    ranks.forEach((r, idx) => {
-      const entry = podium[idx] || null;
+    podiumEl.innerHTML = '';
+    slots.forEach((slot, i) => {
+      const entry = top3[i] || { username: '--', wagerStr: '$0.00' };
       const seat = document.createElement('article');
-      seat.className = `podium-seat ${r.cls} fade-in`;
-
+      seat.className = `podium-seat ${slot.cls} fade-in`;
       seat.innerHTML = `
-        <span class="rank-badge">${r.label}</span>
-        <div class="crown">${r.medal}</div>
-        <div class="user">${entry ? entry.username : '--'}</div>
+        <span class="rank-badge">${slot.place}</span>
+        <div class="crown">${slot.medal}</div>
+        <div class="user">${entry.username}</div>
         <div class="label">WAGERED</div>
-        <div class="wager">${entry ? entry.wager : '$0.00'}</div>
+        <div class="wager">${entry.wagerStr}</div>
         <div class="label">PRIZE</div>
-        <div class="prize">${PRIZES[r.label]}</div>
+        <div class="prize">${PRIZES[slot.place]}</div>
       `;
-
       podiumEl.appendChild(seat);
     });
   }
 
-  function buildOthers(others) {
-    // others: [{rank, username, wager}]
-    const slice = (others || []).slice(0, 7); // 4..10 -> seven cards
-    othersEl.innerHTML = slice.map(o => `
+  /** Build placements 4–10. Prefer rank order; if absent, use wager DESC and assign ranks. */
+  function buildOthers(othersRaw) {
+    let others = (othersRaw || []).map(e => ({
+      rank: typeof e?.rank === 'number' ? e.rank : null,
+      username: e?.username ?? '--',
+      wagerStr: e?.wager ?? '$0.00',
+      wagerNum: moneyToNumber(e?.wager)
+    }));
+
+    // If rank is provided, sort ascending by rank
+    if (others.every(o => typeof o.rank === 'number')) {
+      others.sort((a, b) => a.rank - b.rank);
+    } else {
+      // Fallback: sort by wager DESC and then assign ranks 4..10
+      others.sort((a, b) => b.wagerNum - a.wagerNum);
+      others = others.map((o, idx) => ({ ...o, rank: 4 + idx }));
+    }
+
+    // Ensure exactly 7 items (4..10); pad if the backend returns fewer
+    const desired = 7;
+    if (others.length < desired) {
+      const pad = Array.from({ length: desired - others.length }, (_, i) => ({
+        rank: 4 + others.length + i,
+        username: '--',
+        wagerStr: '$0.00',
+        wagerNum: 0
+      }));
+      others = others.concat(pad);
+    } else if (others.length > desired) {
+      others = others.slice(0, desired);
+    }
+
+    othersEl.innerHTML = others.map(o => `
       <li class="fade-in">
         <span class="position">#${o.rank}</span>
         <div class="username">${o.username}</div>
         <div class="label emphasized">WAGER</div>
-        <div class="wager">${o.wager}</div>
+        <div class="wager">${o.wagerStr}</div>
         <div class="prize">${PRIZES[o.rank] || '$0.00'}</div>
       </li>
     `).join('');
   }
 
+  /** Pull leaderboard data and render */
   async function fetchData() {
     try {
       const r = await fetch('/data', { cache: 'no-store' });
       if (!r.ok) throw new Error(`data status ${r.status}`);
       const j = await r.json();
+
+      // Expect: { podium: [...], others: [...] } (but we guard against mis-ordering)
       buildPodium(j.podium || []);
       buildOthers(j.others || []);
+
       console.info('[leaderboard] updated', j);
     } catch (e) {
       console.error('[leaderboard] failed', e);
+      // Keep previous DOM so the page doesn’t blank out on transient errors
     }
   }
 
+  /** Live badge: “LIVE NOW!” + viewer count when available */
   async function fetchStream() {
     try {
       const r = await fetch('/stream', { cache: 'no-store' });
@@ -118,6 +171,7 @@
     }
   }
 
+  /** Countdown driven by /config (end_time epoch seconds) */
   async function initCountdown() {
     try {
       const r = await fetch('/config', { cache: 'no-store' });
@@ -147,6 +201,7 @@
     }
   }
 
+  /** Boot */
   function boot() {
     if (yearOut) yearOut.textContent = new Date().getFullYear();
 
