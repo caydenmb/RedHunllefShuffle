@@ -1,9 +1,3 @@
-/* Frontend: leaderboard + stream + countdown
-   - 60s refresh for /data and /stream, 1s tick for countdown
-   - Keeps masked names on page; server logs have full usernames
-   - Smooth podium + inline cards, uniform WAGERED / PRIZE labels
-*/
-
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -131,7 +125,7 @@
   }
 
   function boot(){
-    if(yearOut) yearOut.textContent=new Date().getFullYear();
+    const y = document.querySelector('#year'); if(y) y.textContent=new Date().getFullYear();
     fetchData(); fetchStream(); initCountdown();
     setInterval(fetchData,60_000); setInterval(fetchStream,60_000);
   }
