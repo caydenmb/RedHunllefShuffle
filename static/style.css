@@ -1,177 +1,212 @@
-/* ================== Theme tokens ================== */
+/* ===== Base / Theme ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+
 :root{
-  --bg:#0e0e0f; --panel:#151516; --panel-2:#1a1b1c; --muted:#b5b5b5; --text:#f3f3f3;
-  --accent:#18c964; --accent-ink:#071b10; --ring:#ffd54a; --ring-2:#c8c8c8; --ring-3:#e7904d;
-
-  /* unified shadows */
-  --shadow-sm: 0 6px 16px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
-  --shadow-md: 0 10px 28px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.035);
-  --shadow-lg: 0 16px 42px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-
-  --ease: cubic-bezier(.22,.61,.36,1);
-  --fast: .18s;
+  --bg:#0f0f0f; --card:#141414; --card-2:#1b1b1b; --border:#2a2a2a;
+  --accent:#52ff33; --text:#f0f0f0; --text-alt:#b5b5b5;
+  --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32; --shadow:0 8px 28px rgba(0,0,0,.6)
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  background:radial-gradient(1200px 800px at 20% -10%, #1a1a1c 0%, #0e0e0f 60%),
-             radial-gradient(1400px 800px at 90% -20%, #1a1a1c 0%, #0e0e0f 60%), #0e0e0f;
-  color:var(--text);
-}
-a{color:#e6e6e6; text-decoration:none}
-.container{width:min(1200px,92%); margin-inline:auto}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+img{max-width:100%;height:auto;display:block}
+a{color:#7da2ff;text-decoration:none}
+a:hover{color:#a5bbff}
+.container{width:min(1200px,92%);margin-inline:auto}
 
-/* ================== Header ================== */
-.header{position:sticky;top:0;z-index:50;background:rgba(10,10,11,.9);backdrop-filter:blur(8px);border-bottom:1px solid #222}
-.header-content{display:flex;align-items:center;gap:.75rem;padding:.6rem 0}
-.brand{display:flex;align-items:center;gap:.65rem}
-.logo{width:34px;height:34px;border-radius:6px;animation:logo-bounce 3s ease-in-out infinite}
-@keyframes logo-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-.brand-title{font-size:1.1rem;margin:0}
+/* ===== Header ===== */
+.header{position:sticky;top:0;z-index:1000;background:rgba(20,20,20,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.header-content{display:flex;align-items:center;justify-content:space-between;padding:.9rem 0}
+.brand{display:flex;align-items:center;gap:.8rem;text-decoration:none;color:var(--text)}
+.logo{width:clamp(36px,4vw,44px);height:clamp(36px,4vw,44px);animation:logo-bounce 3.2s ease-in-out infinite;transform-origin:bottom center}
+@keyframes logo-bounce{0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}60%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.logo{animation:none}}
+.brand-title{font-size:clamp(1.05rem,2.2vw,1.25rem);font-weight:900;letter-spacing:.2px}
 
-/* ================== Hero ================== */
-.hero{padding:28px 0 10px}
-.hero-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
-.hero-heading{font-size:clamp(1.6rem,3.2vw,2.4rem);text-align:center;margin:0}
+/* ===== Hero ===== */
+.hero{background:radial-gradient(1000px 500px at 20% -10%,#242424 10%,transparent 60%),linear-gradient(135deg,#111,#171717);padding:clamp(2.4rem,4.5vw,3.5rem) 0 clamp(1.6rem,3vw,2.5rem);text-align:center;border-bottom:1px solid var(--border)}
+.hero-heading{font-size:clamp(1.6rem,4.6vw,2.3rem);font-weight:900;letter-spacing:-.01em;margin-bottom:.8rem}
 
-.live-status{
-  display:flex;align-items:center;gap:.6rem;background:var(--panel);
-  border:1px solid #252525;border-radius:48px;padding:.55rem .7rem .55rem .6rem;
-  box-shadow:var(--shadow-md);
-  transition: box-shadow var(--fast) var(--ease), transform var(--fast) var(--ease);
-}
-.live-status .dot{width:10px;height:10px;border-radius:50%;background:#666;box-shadow:0 0 0 4px rgba(102,102,102,.15)}
-.live-status.live .dot{background:#ff5148;box-shadow:0 0 0 4px rgba(255,81,72,.18)}
-.live-status.off .dot{background:#666}
-.live-status .text{font-weight:700}
-.viewer-chip{background:#212;border:1px solid #333;border-radius:999px;padding:.2rem .55rem;font-size:.85rem}
-.live-cta{background:#13c463;color:var(--accent-ink);border-radius:999px;padding:.5rem .9rem;font-weight:800;margin-left:.25rem;box-shadow:0 10px 24px rgba(19,196,99,.18)}
-.live-cta:hover{transform:translateY(-1px)}
-@media (prefers-reduced-motion: reduce){ .live-status,.live-cta{transition:none; transform:none} }
+/* Live status badge */
+.live-status{display:inline-flex;align-items:center;gap:.6rem;margin:.25rem 0 1.1rem;background:var(--card-2);border:1px solid var(--border);border-radius:999px;padding:.45rem .75rem .45rem .55rem;box-shadow:var(--shadow)}
+.live-status .dot{width:.65rem;height:.65rem;border-radius:999px;background:#999;animation:none}
+.live-status.live  .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
+.live-status.off   .dot{background:#666}
+.live-status.unk   .dot{background:#999}
+.live-status .text{font-weight:900;color:#fff}
+.live-status .live-cta{margin-left:.4rem;font-weight:900;color:#fff;text-decoration:none;background:#26c281;border-radius:999px;padding:.35rem .7rem}
+.live-status .live-cta:hover{filter:brightness(1.05)}
+.viewer-chip{display:none;align-items:center;gap:.35rem;background:#202b20;color:#d8ffd3;border:1px solid #2f4e2f;border-radius:999px;padding:.25rem .6rem;font-weight:800;font-size:.85rem}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 
-/* ================== Countdown ================== */
-.countdown-wrap{display:flex;align-items:center;gap:.75rem}
-.time-pill{background:var(--panel);border:1px solid #252525;border-radius:14px;padding:.5rem .8rem;text-align:center;box-shadow:var(--shadow-md)}
-.time-pill span{display:block;font-weight:900;font-size:1.15rem}
-.time-pill label{display:block;font-size:.75rem;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
-.sep{opacity:.5}
+/* Countdown pills */
+.countdown-wrap{display:inline-flex;align-items:stretch;gap:.6rem;margin-top:.2rem}
+.time-pill{background:var(--card-2);border:1px solid var(--border);border-radius:12px;min-width:clamp(68px,14vw,100px);padding:.5rem .6rem;display:grid;place-items:center}
+.time-pill span{font-weight:900;font-size:clamp(1.2rem,4vw,1.8rem);line-height:1}
+.time-pill label{font-size:.75rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.5px}
+.sep{display:grid;place-items:center;opacity:.6;font-weight:900}
 
-/* ================== Sponsors ================== */
-.sponsors{padding:12px 0 14px;text-align:center}
-.section-title{font-size:clamp(1.3rem,2.6vw,2rem);margin:0 0 .6rem}
+/* ===== Sponsors ===== */
+.sponsors{padding:2.2rem 0;text-align:center}
+.section-title{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;margin-bottom:.3rem}
 .section-title.centered{text-align:center}
-.section-subtitle{color:var(--muted);margin:.15rem 0 .75rem}
-.sponsors-grid{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.sponsor-btn{
-  background:#e3493f;color:#fff;border-radius:999px;padding:.6rem 1rem;font-weight:800;
-  box-shadow:0 12px 30px rgba(227,73,63,.16);
-  transform:scale(1); transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+.section-subtitle{color:var(--text-alt);margin-bottom:1.2rem}
+.sponsors-grid{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center}
+.sponsor-btn{background:#d63a3a;color:#fff;padding:.7rem 1.3rem;border-radius:9999px;font-weight:800;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease;box-shadow:0 12px 30px rgba(214,58,58,.25)}
+.sponsor-btn:hover{transform:translateY(-2px) scale(1.02)}
+
+/* ===== Race Card ===== */
+.race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(1rem,2.2vw,1.4rem);border-radius:14px;box-shadow:var(--shadow);margin-bottom:3rem;border:1px solid var(--border)}
+.race-header{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
+.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:1.0rem 0 1.75rem} /* extra bottom spacing */
+
+/* ===== Podium (Top 3) ===== */
+.podium-olympic{
+  display:grid;
+  grid-template-columns:1fr minmax(260px,1.2fr) 1fr; /* 2nd | 1st | 3rd */
+  gap:clamp(.8rem,2.6vw,1.2rem);
+  align-items:end;
+  margin:0.75rem 0 1.6rem;
 }
-.sponsor-btn:hover{transform:scale(1.02); box-shadow:0 16px 40px rgba(227,73,63,.24)}
-@media (prefers-reduced-motion: reduce){ .sponsor-btn{transition:none} }
 
-/* ================== Leaderboard panels ================== */
-.race{padding:18px 0 40px}
-.race-inner{background:linear-gradient(180deg,#171718,#131314);border:1px solid #262626;border-radius:18px;box-shadow:var(--shadow-lg);padding:24px}
-.helper-card{background:var(--panel);border:1px solid #272727;border-radius:12px;padding:.8rem;margin:.5rem 0 1.2rem}
-.helper-card p{color:#c9c9c9;font-size:.95rem}
-
-/* Podium layout */
-.podium-wrap{overflow:visible; margin-top:.4rem;} /* allow badge to float above card without clipping */
-.podium-olympic{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:end;padding-top:8px} /* breathing room for badges */
+/* Use CSS variables to combine base lift + hover lift */
 .podium-seat{
-  position:relative;background:linear-gradient(180deg,#171717,#131313);
-  border:1px solid #2a2a2a;border-radius:16px;box-shadow:var(--shadow-md);
-  padding:18px 18px 20px;text-align:center;
-  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
-  min-height: 320px;
+  --lift: 0px;         /* base podium raise */
+  --hover-lift: 0px;   /* extra motion on hover */
+  position:relative;
+  background:var(--card-2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  padding:1.6rem .9rem 1.3rem;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.25rem;
+  cursor: default;
+  transform: translateY(calc(var(--lift) + var(--hover-lift)));
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  overflow:visible;
 }
-.podium-seat:hover{transform:translateY(-2px); box-shadow:var(--shadow-lg)}
+.podium-seat:hover{
+  --hover-lift: -4px;                     /* gentle float */
+  box-shadow:0 12px 36px rgba(0,0,0,.55); /* soft glow, not a button */
+  filter: brightness(1.02);
+}
+
 .podium-seat .rank-badge{
-  position:absolute;top:-10px;left:12px;background:#0c0c0d;color:#fff;
-  border:1px solid #2a2a2a;border-radius:999px;padding:.2rem .5rem;font-weight:900
+  position:absolute; top:10px; left:10px;
+  background:#000; color:#fff; border:2px solid #333;
+  width:2rem; height:2rem; border-radius:50%;
+  display:grid; place-items:center; font-weight:900;
 }
-.podium-seat .crown{font-size:38px;line-height:1;margin-top:8px}
-.podium-seat .user{font-weight:900;font-size:1.15rem;margin-top:6px}
-.podium-seat .label{color:var(--muted);font-size:.75rem;margin-top:8px;letter-spacing:.45px}
-.podium-seat .wager{font-size:1.3rem;margin-top:.25rem}
-.podium-seat .prize{color:var(--accent);font-weight:900;margin-top:.15rem}
-.card-headroom{height:26px}
 
-.col-first{box-shadow:0 0 0 1px rgba(255,213,74,.25), var(--shadow-md)}
-.col-second{box-shadow:0 0 0 1px rgba(200,200,200,.22), var(--shadow-md)}
-.col-third{box-shadow:0 0 0 1px rgba(231,144,77,.22), var(--shadow-md)}
-.place-change{animation:swapFlash .24s var(--ease)}
-@keyframes swapFlash{0%{box-shadow:0 0 0 0 rgba(255,255,255,.0)}50%{box-shadow:0 0 0 3px rgba(255,255,255,.25)}100%{box-shadow:0 0 0 0 rgba(255,255,255,.0)}}
+/* Medal container — centered emoji from JS */
+.podium-seat .crown{
+  width:100%;
+  min-height:1.2em;
+  font-size:clamp(2.2rem,5.5vw,3rem);
+  line-height:1;
+  margin-bottom:.15rem;
+  display:block;
+  text-align:center;
+}
 
-/* Others row (ranks 4–10) */
+/* Base “podium” raise per place (via --lift) */
+.podium-seat.col-first{
+  --lift: -16px;
+  min-height:clamp(220px,28vw,260px);
+  border-color:var(--gold);
+  box-shadow:0 0 32px #ffd70033,var(--shadow);
+}
+.podium-seat.col-second{
+  --lift: -6px;
+  min-height:clamp(170px,24vw,210px);
+  border-color:var(--silver);
+  box-shadow:0 0 26px #c0c0c033,var(--shadow);
+}
+.podium-seat.col-third{
+  --lift: 0px;
+  min-height:clamp(150px,22vw,196px);
+  border-color:var(--bronze);
+  box-shadow:0 0 22px #cd7f3233,var(--shadow);
+}
+
+/* Prominence of names + amounts */
+.podium-seat .user{font-weight:900;font-size:clamp(1.05rem,3.2vw,1.25rem);overflow-wrap:anywhere}
+.podium-seat .label{font-size:.73rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.4px;margin-top:.1rem}
+.podium-seat .wager{font-size:1.05rem;overflow-wrap:anywhere}
+.podium-seat .prize{font-weight:900;color:var(--accent)}
+.success-badge{display:none !important} /* hide old Champion/Runner-up/Third */
+
+/* ===== 4–10 row ===== */
 .others-inline{
-  display:grid;grid-template-columns:repeat(7,1fr);gap:16px;margin-top:16px
+  --others-count:7;
+  display:grid;
+  grid-template-columns:repeat(var(--others-count),1fr);
+  gap:.9rem;
+  overflow:visible;         /* was hidden: now the hover lift won't clip */
+  padding-top:.2rem;        /* small cushion so upward hover never cuts */
 }
 .others-inline li{
-  list-style:none; position:relative; background:linear-gradient(180deg,#171717,#131313);
-  border:1px solid #2a2a2a; border-radius:16px; box-shadow:var(--shadow-md);
-  padding:16px 16px 18px; min-height:220px;
-  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+  --hover-lift: 0px;
+  position:relative;
+  background:var(--card-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:2.2rem .9rem 1rem;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.25rem;
+  height:190px;
+  cursor: default;
+  transform: translateY(var(--hover-lift));
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  overflow:visible;          /* was hidden: allow the lift to exceed the box */
+  will-change: transform;    /* smoother hover on low-end devices */
 }
-.others-inline li:hover{transform:translateY(-2px); box-shadow:var(--shadow-lg)}
+.others-inline li:hover{
+  --hover-lift: -3px;                          /* subtle movement */
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  filter: brightness(1.015);
+}
 .others-inline .position{
-  position:absolute; top:-12px; left:12px;
-  background:#0c0c0d; color:#fff; border:1px solid #2a2a2a; border-radius:999px;
-  padding:.18rem .48rem; font-weight:900; font-size:.95rem; line-height:1;
+  position:absolute; top:10px; left:10px; background:#000; color:#fff;
+  border:2px solid #333; border-radius:999px; padding:.1rem .5rem; font-weight:900;
 }
-.others-inline .username{font-weight:800;font-size:1.05rem;margin-top:8px}
-.others-inline .label{color:var(--muted);font-size:.72rem;margin-top:8px;letter-spacing:.45px}
-.others-inline .label.emphasized{color:#9fe09f}
-.others-inline .wager{font-size:1.1rem;margin-top:.25rem}
-.others-inline .prize{color:var(--accent);font-weight:900;margin-top:.2rem}
+.others-inline .username{font-weight:900;overflow-wrap:anywhere}
+.others-inline .label.emphasized{font-size:.75rem;color:var(--accent);font-weight:900;text-transform:uppercase}
+.others-inline .wager{color:var(--text-alt);overflow-wrap:anywhere}
+.others-inline .prize{font-weight:900;color:var(--accent)}
 
-.value-changed{animation:valuePulse .9s var(--ease)}
-@keyframes valuePulse{0%{box-shadow:0 0 0 0 rgba(24,201,100,.0)}50%{box-shadow:0 0 0 6px rgba(24,201,100,.2)}100%{box-shadow:0 0 0 0 rgba(24,201,100,.0)}}
+/* ===== Footer ===== */
+.footer{background:#121212;border-top:1px solid var(--border);padding:2rem 0}
+.footer-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:1rem;align-items:start}
+.footer-brand{display:flex;gap:.8rem;align-items:center}
+.footer-logo{width:36px;height:36px}
+.footer-brand h3{margin:0;font-weight:900}
+.footer-brand .muted{color:var(--text-alt);font-size:.9rem}
+.footer-links{display:grid;gap:.35rem;align-content:start}
+.footer-links a{color:var(--text-alt);text-decoration:none;font-weight:700}
+.footer-links a:hover{color:var(--text)}
+.footer-meta{text-align:right;color:var(--text-alt);font-size:.95rem}
+.footer-meta a{color:var(--accent);text-decoration:none;font-weight:800}
+.footer-meta a:hover{text-decoration:underline}
 
-/* ================== Footer ================== */
-.footer{
-  position:relative; margin-top:34px; background:#0d0d0e; border-top:1px solid #202020;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
-}
-.footer::before{
-  content:""; position:absolute; top:-1px; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
-}
-.footer-grid{display:grid;grid-template-columns:1.2fr .8fr 1fr;gap:18px;padding:18px 0}
-.footer-brand{display:flex;gap:10px;align-items:center}
-.footer-logo{width:28px;height:28px;border-radius:6px}
-.footer-links{display:flex;flex-direction:column;gap:8px}
-.footer-meta p{color:#bdbdbd;margin:.15rem 0}
-.muted{color:#bdbdbd}
-.tigh t{margin:.1rem 0 0} /* typo fix below */
-.tight{margin:.1rem 0 0}
-.brand-credit{color:var(--accent);font-weight:800} /* GingrSnaps in green */
+/* ===== Effects ===== */
+.fade-in{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* ================== Responsive tweaks ================== */
-@media(max-width:1100px){
-  .others-inline{grid-template-columns:repeat(4,1fr)}
-}
-@media(max-width:800px){
-  .podium-olympic{grid-template-columns:1fr;gap:14px}
-  .col-first{transform:translateY(-4px)}
-  .others-inline{grid-template-columns:repeat(2,1fr)}
-  .podium-seat{min-height: 300px}
-}
-@media(max-width:520px){
-  .others-inline .position{top:-10px;font-size:.9rem}
-  .card-headroom{height:30px}
-  .others-inline .username{margin-top:8px}
-  .podium-seat{min-height: 290px}
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .sponsor-btn:hover,
-  .podium-seat:hover,
-  .others-inline li:hover,
-  .live-cta:hover { transform:none }
-  .place-change, .value-changed{ animation:none }
+/* ===== Mobile ===== */
+@media (max-width:900px){
+  .podium-olympic{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr;text-align:center}
+  .footer-meta{text-align:center}
+  .others-inline{grid-template-columns:1fr;overflow:visible}
+  .others-inline li{height:auto}
 }
