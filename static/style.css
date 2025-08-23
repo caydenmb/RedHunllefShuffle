@@ -8,7 +8,6 @@
   --shadow-md: 0 10px 28px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.035);
   --shadow-lg: 0 16px 42px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
 
-  /* animation */
   --ease: cubic-bezier(.22,.61,.36,1);
   --fast: .18s;
 }
@@ -80,18 +79,18 @@ a{color:#e6e6e6; text-decoration:none}
 .helper-card p{color:#c9c9c9;font-size:.95rem}
 
 /* Podium layout */
-.podium-wrap{overflow:hidden;margin-top:.4rem}
-.podium-olympic{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:end}
+.podium-wrap{overflow:visible; margin-top:.4rem;} /* allow badge to float above card without clipping */
+.podium-olympic{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:end;padding-top:8px} /* breathing room for badges */
 .podium-seat{
   position:relative;background:linear-gradient(180deg,#171717,#131313);
   border:1px solid #2a2a2a;border-radius:16px;box-shadow:var(--shadow-md);
   padding:18px 18px 20px;text-align:center;
   transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
-  min-height: 320px; /* keep geometry stable */
+  min-height: 320px;
 }
 .podium-seat:hover{transform:translateY(-2px); box-shadow:var(--shadow-lg)}
 .podium-seat .rank-badge{
-  position:absolute;top:-12px;left:12px;background:#0c0c0d;color:#fff;
+  position:absolute;top:-10px;left:12px;background:#0c0c0d;color:#fff;
   border:1px solid #2a2a2a;border-radius:999px;padding:.2rem .5rem;font-weight:900
 }
 .podium-seat .crown{font-size:38px;line-height:1;margin-top:8px}
@@ -147,6 +146,9 @@ a{color:#e6e6e6; text-decoration:none}
 .footer-links{display:flex;flex-direction:column;gap:8px}
 .footer-meta p{color:#bdbdbd;margin:.15rem 0}
 .muted{color:#bdbdbd}
+.tigh t{margin:.1rem 0 0} /* typo fix below */
+.tight{margin:.1rem 0 0}
+.brand-credit{color:var(--accent);font-weight:800} /* GingrSnaps in green */
 
 /* ================== Responsive tweaks ================== */
 @media(max-width:1100px){
@@ -165,7 +167,7 @@ a{color:#e6e6e6; text-decoration:none}
   .podium-seat{min-height: 290px}
 }
 
-/* Reduced motion: disable movement but keep accessible focus/hover states */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce){
   .sponsor-btn:hover,
   .podium-seat:hover,
