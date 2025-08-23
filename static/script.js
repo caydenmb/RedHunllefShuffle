@@ -1,3 +1,9 @@
+/* Frontend: leaderboard + stream + countdown
+   - 60s refresh for /data and /stream, 1s tick for countdown
+   - Keeps masked names on page; server logs have full usernames
+   - Smooth podium + inline cards, uniform WAGERED / PRIZE labels
+*/
+
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -28,7 +34,7 @@
 
     const seats=[
       {place:2,cls:'col-second',medal:'🥈',entry:second,aria:'Second place medal'},
-      {place:1,cls:'col-first', meda:'🥇', medal:'🥇',entry:first, aria:'First place medal'},
+      {place:1,cls:'col-first', medal:'🥇',entry:first, aria:'First place medal'},
       {place:3,cls:'col-third', medal:'🥉',entry:third, aria:'Third place medal'},
     ];
 

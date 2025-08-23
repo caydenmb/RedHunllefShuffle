@@ -1,4 +1,46 @@
 # -*- coding: utf-8 -*-
+"""
+Wager race backend for RedHunllef / Shuffle.com
+
+WHAT'S IN THIS FILE
+-------------------
+1) Flask app + JSON endpoints for the frontend:
+   - GET /              -> index.html (leaderboard UI)
+   - GET /data          -> cached leaderboard (podium + others)
+   - GET /config        -> countdown end time epoch
+   - GET /stream        -> Kick live status (uses OAuth token + JSON endpoints)
+   - GET /stats         -> public (but unlinked) stats page
+   - GET /stats.html    -> same as /stats for convenience
+   - GET /stats-data    -> anonymized, aggregated site metrics
+
+2) Background updaters (every 60s):
+   - Leaderboard cache (demo data here; keep your real source plugged in)
+   - Kick live status (NO HTML scrape fallback, per your request)
+
+3) Privacy-safe analytics (sqlite3 in Flask instance folder):
+   - No raw IPs stored. We hash IP + a daily salt.
+   - Honors Do-Not-Track and ?no_track=1
+   - Stores minimal visit data for / and /stats only.
+
+RESTORATIONS + FIXES IN THIS VERSION
+------------------------------------
+- Restored **Kick API polling** using your Client ID/Secret with OAuth token.
+- Removed HTML fallback/scrape entirely (no scraping).
+- Flask 3.x–safe: background threads start via a **guarded before_request**.
+- Ensured **/stats** and **/stats.html** both render stats.html (fixes 404).
+- Clear, structured, human-readable console logs with context keys.
+
+REQUIRED ENVs (same as before)
+------------------------------
+export KICK_CHANNEL=redhunllef
+export KICK_CLIENT_ID=01K39PNSMPVX2PS4EEJ2K69EVF
+export KICK_CLIENT_SECRET=47970da4c8790427e09eaebd1b7c8d522ef233c54bbd896514c7f562c66ca74e
+# Optional:
+# export RACE_END_EPOCH=1767225599
+# export ANALYTICS_DB=/app/instance/analytics.sqlite3
+# export PORT=8080
+"""
+
 import os
 import re
 import time
@@ -17,6 +59,7 @@ from flask import Flask, request, jsonify, render_template
 APP_NAME = "redhunllefshuffle"
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
+# ---------------------------- Logging setup ----------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [%(levelname)s] event=%(message)s',
@@ -24,45 +67,43 @@ logging.basicConfig(
 )
 log = logging.getLogger(APP_NAME)
 
-# -----------------------------------------------------------------------------
-# Config
-# -----------------------------------------------------------------------------
+# ---------------------------- Config -----------------------------------------
+REFRESH_SECONDS = 60
 RACE_END_EPOCH = int(os.environ.get("RACE_END_EPOCH", str(int(time.time()) + 11*24*3600)))
+
 KICK_CHANNEL = os.environ.get("KICK_CHANNEL", "redhunllef")
 KICK_CLIENT_ID = os.environ.get("KICK_CLIENT_ID", "")
 KICK_CLIENT_SECRET = os.environ.get("KICK_CLIENT_SECRET", "")
-REFRESH_SECONDS = 60
 
-# Writable analytics DB in Flask's instance folder
+# SQLite lives in Flask's instance folder (writable in DO App Platform)
 os.makedirs(app.instance_path, exist_ok=True)
 AN_DB = os.environ.get("ANALYTICS_DB", os.path.join(app.instance_path, "analytics.sqlite3"))
 
-# -----------------------------------------------------------------------------
-# Helpers
-# -----------------------------------------------------------------------------
+# ---------------------------- Helpers ----------------------------------------
 def mask_username(u: str) -> str:
+    """Show first two characters publicly + '******'. Log full names to console."""
     u = (u or "").strip()
     return (u[:2] + "******") if len(u) >= 2 else (u or "*") + "******"
 
 def money(n) -> str:
+    """Format as USD safely."""
     try:
         return f"${float(n):,.2f}"
     except Exception:
         return "$0.00"
 
-# -----------------------------------------------------------------------------
-# In-memory state
-# -----------------------------------------------------------------------------
+def day_str(ts=None):
+    return datetime.utcfromtimestamp(ts or time.time()).strftime("%Y-%m-%d")
+
+# ---------------------------- In-memory state --------------------------------
 state = {
     "data": {"podium": [], "others": [], "updated_at": 0},
-    "stream": {"live": False, "viewers": None, "source": "unknown", "updated_at": 0},
+    "stream": {"live": False, "viewers": None, "source": "kick", "updated_at": 0},
     "kick_token": {"access_token": None, "expires_at": 0},
-    "health": {"kick_ok": False, "shuffle_ok": True, "cache_ok": True, "updated_at": 0}
+    "health": {"kick_ok": False, "shuffle_ok": True, "cache_ok": True, "updated_at": 0},
 }
 
-# -----------------------------------------------------------------------------
-# Analytics (stdlib only)
-# -----------------------------------------------------------------------------
+# ---------------------------- Analytics (stdlib) -----------------------------
 BOT_RE = re.compile(r"(bot|crawler|spider|fetch|monitor|pingdom|curl|wget)", re.I)
 MOBILE_RE = re.compile(r"(iphone|android|mobile)", re.I)
 TABLET_RE = re.compile(r"(ipad|tablet)", re.I)
@@ -120,9 +161,6 @@ def init_db():
         except Exception:
             pass
 
-def day_str(ts=None):
-    return datetime.utcfromtimestamp(ts or time.time()).strftime("%Y-%m-%d")
-
 def get_daily_salt(day: str) -> str:
     con = db_conn()
     try:
@@ -149,16 +187,18 @@ def sha(v: str) -> str:
     return hashlib.sha256(v.encode("utf-8")).hexdigest()
 
 def track_visit():
-    """Anonymous visit logging for '/' and '/stats'. Safe in readonly envs."""
+    """
+    Anonymous visit logging for '/' and '/stats' (only).
+    - Skips bots, respects DNT and ?no_track=1
+    - Stores no raw IP; uses daily salt hashing.
+    """
     try:
         if request.method != "GET": return
         if request.args.get("no_track") == "1": return
         if request.headers.get("DNT") == "1": return
-
         ua = request.headers.get("User-Agent", "")
         if is_bot(ua): return
-
-        if request.path not in ("/", "/stats"):  # keep stats lean
+        if request.path not in ("/", "/stats", "/stats.html"):
             return
 
         ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "0.0.0.0").split(",")[0].strip()
@@ -185,41 +225,47 @@ def track_visit():
         finally:
             con.close()
     except Exception as exc:
-        # Never break the request on analytics errors
         log.warning(f"analytics.track_failed err={exc!r}")
 
 @app.before_request
-def _before():
-    # Start background threads once (Flask 3 safe)
+def _before_request():
+    """
+    Flask 3.x–safe boot:
+    - Start background threads once using a lock-guard.
+    - Track visits for '/' and '/stats'.
+    """
     start_background_threads_once()
-    # Track visits for '/' and '/stats'
     track_visit()
 
-# -----------------------------------------------------------------------------
-# Demo leaderboard source (replace with your real data pull)
-# -----------------------------------------------------------------------------
+# ------------------------- Demo leaderboard source ---------------------------
 def _demo_wager_data():
+    """
+    Replace this with your real data fetch. We log *full* usernames here,
+    but the UI only sees masked usernames via /data.
+    """
     return [
         {"username": "swizzle", "wager": 228857.91},
-        {"username": "liquid",  "wager": 38763.90},
-        {"username": "butter",  "wager": 22008.13},
-        {"username": "suave",   "wager": 21158.67},
-        {"username": "shadow",  "wager": 15035.61},
-        {"username": "geckoid", "wager": 12289.89},
-        {"username": "wexford", "wager": 10424.40},
-        {"username": "badger",  "wager":  7298.84},
-        {"username": "ekko",    "wager":  3019.25},
-        {"username": "tenant",  "wager":  2957.38},
+        {"username": "liquid",  "wager":  38763.90},
+        {"username": "butter",  "wager":  22008.13},
+        {"username": "suave",   "wager":  21158.67},
+        {"username": "shadow",  "wager":  15035.61},
+        {"username": "geckoid", "wager":  12289.89},
+        {"username": "wexford", "wager":  10424.40},
+        {"username": "badger",  "wager":   7298.84},
+        {"username": "ekko",    "wager":   3019.25},
+        {"username": "tenant",  "wager":   2957.38},
     ]
 
 def refresh_wager_cache():
+    """Refreshes the leaderboard cache every REFRESH_SECONDS."""
     while True:
         try:
-            data = _demo_wager_data()               # TODO: replace with live source
+            data = _demo_wager_data()  # plug in your real source
             data.sort(key=lambda r: float(r["wager"]), reverse=True)
 
-            # Log full, uncensored top3 for ops
-            log.info(f"leaderboard.top3 full={[d['username'] for d in data[:3]]}")
+            # Log full usernames (uncensored) for ops/debugging
+            top3_full = [d["username"] for d in data[:3]]
+            log.info(f"leaderboard.refresh ok=true top3_full={top3_full}")
 
             podium = [{"username": mask_username(d["username"]), "wager": money(d["wager"])} for d in data[:3]]
             others = [{"rank": i+4, "username": mask_username(d["username"]), "wager": money(d["wager"])}
@@ -227,14 +273,16 @@ def refresh_wager_cache():
 
             state["data"] = {"podium": podium, "others": others, "updated_at": int(time.time())}
 
-            # Save snapshot for churn stats
+            # Save a podium snapshot for churn metrics
             try:
                 con = db_conn()
-                con.execute("INSERT INTO podium_snapshots(ts, first, second, third) VALUES(?,?,?,?)",
-                            (int(time.time()),
-                             data[0]["username"] if len(data)>0 else None,
-                             data[1]["username"] if len(data)>1 else None,
-                             data[2]["username"] if len(data)>2 else None))
+                con.execute(
+                    "INSERT INTO podium_snapshots(ts, first, second, third) VALUES(?,?,?,?)",
+                    (int(time.time()),
+                     data[0]["username"] if len(data)>0 else None,
+                     data[1]["username"] if len(data)>1 else None,
+                     data[2]["username"] if len(data)>2 else None)
+                )
                 con.commit()
                 con.close()
             except Exception as exc:
@@ -243,20 +291,28 @@ def refresh_wager_cache():
             state["health"]["cache_ok"] = True
             state["health"]["shuffle_ok"] = True
             state["health"]["updated_at"] = int(time.time())
+
         except Exception as exc:
             state["health"]["cache_ok"] = False
             log.error(f"leaderboard.refresh_failed err={exc!r}")
+
         time.sleep(REFRESH_SECONDS)
 
-# -----------------------------------------------------------------------------
-# Kick live status (token optional; fallback to HTML sniff)
-# -----------------------------------------------------------------------------
-def _kick_get_token():
+# ------------------------- Kick API (OAuth + JSON only) ----------------------
+def _kick_get_token() -> str | None:
+    """
+    Get/refresh a bearer token from Kick's OAuth server.
+    NOTE: No scraping is used. If 403s persist from downstream endpoints,
+    we'll log and keep the last known stream state.
+    """
     if not (KICK_CLIENT_ID and KICK_CLIENT_SECRET):
+        log.warning("kick.token_skipped reason=missing_credentials")
         return None
+
     now = int(time.time())
     if state["kick_token"]["access_token"] and now < state["kick_token"]["expires_at"] - 60:
         return state["kick_token"]["access_token"]
+
     try:
         r = requests.post(
             "https://id.kick.com/oauth2/token",
@@ -266,56 +322,72 @@ def _kick_get_token():
                 "client_secret": KICK_CLIENT_SECRET,
                 "scope": "public",
             },
-            timeout=10,
+            headers={"User-Agent": "redhunllefshuffle/1.0"},
+            timeout=12,
         )
         if r.status_code == 200:
             tok = r.json()
             state["kick_token"]["access_token"] = tok.get("access_token")
             state["kick_token"]["expires_at"] = int(time.time()) + int(tok.get("expires_in", 3600))
+            log.info("kick.token_ok expires_in=%s", tok.get("expires_in"))
             return state["kick_token"]["access_token"]
+        else:
+            log.warning("kick.token_failed status=%s body=%s", r.status_code, r.text[:200])
     except Exception as exc:
-        log.warning(f"kick.token_failed err={exc!r}")
+        log.warning(f"kick.token_exception err={exc!r}")
+
     return None
 
-def _kick_fetch_status():
-    headers = {"Accept": "application/json"}
+def _kick_fetch_status() -> dict:
+    """
+    Query Kick channel livestream JSON endpoints (no HTML).
+    We try multiple endpoints to maximize compatibility. If all fail, we
+    return the previous known state (or offline) and log warnings.
+    """
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "redhunllefshuffle/1.0",
+        "Client-Id": KICK_CLIENT_ID or "",  # harmless if empty
+    }
     tok = _kick_get_token()
-    if tok: headers["Authorization"] = f"Bearer {tok}"
+    if tok:
+        headers["Authorization"] = f"Bearer {tok}"
 
-    for url in [
+    endpoints = [
         f"https://kick.com/api/v2/channels/{KICK_CHANNEL}/livestream",
         f"https://kick.com/api/v1/channels/{KICK_CHANNEL}/livestream",
-    ]:
+        # If the official docs add a new host/path, add it here:
+        # f"https://api.kick.com/livestreams/{KICK_CHANNEL}",
+    ]
+
+    for url in endpoints:
         try:
-            r = requests.get(url, headers=headers, timeout=10)
+            r = requests.get(url, headers=headers, timeout=12)
             if r.status_code == 200:
                 j = r.json()
-                live = bool(j.get("livestream", j).get("is_live", j.get("is_live", False)))
-                viewers = j.get("livestream", j).get("viewer_count", j.get("viewer_count"))
+                # The JSON shape can vary by version; check both places:
+                node = j.get("livestream", j)
+                live = bool(node.get("is_live", node.get("status") == "live"))
+                viewers = node.get("viewer_count") or node.get("viewers") or None
                 return {"live": live, "viewers": viewers, "source": "kick"}
             elif r.status_code == 403:
-                log.warning(f"kick.fetch url='{url}' status=403 note='blocked'")
+                log.warning(f"kick.fetch status=403 url='{url}' note='blocked'")
             else:
-                log.warning(f"kick.fetch url='{url}' status={r.status_code}")
+                log.warning(f"kick.fetch status={r.status_code} url='{url}' body='{r.text[:160]}'")
         except Exception as exc:
-            log.warning(f"kick.fetch_failed url='{url}' err={exc!r}")
+            log.warning(f"kick.fetch_exception url='{url}' err={exc!r}")
 
-    # Fallback HTML
-    try:
-        url = f"https://kick.com/{KICK_CHANNEL}"
-        r = requests.get(url, timeout=10)
-        live = ("isLive" in r.text) or ("Live Now" in r.text)
-        return {"live": live, "viewers": None, "source": "fallback"}
-    except Exception as exc:
-        log.warning(f"kick.fallback_failed err={exc!r}")
-        return {"live": False, "viewers": None, "source": "unknown"}
+    # If all endpoints failed, keep last known state (do not mark scraping)
+    prev = state.get("stream", {}).copy()
+    return {"live": prev.get("live", False), "viewers": prev.get("viewers"), "source": "kick"}
 
 def refresh_stream_cache():
+    """Poll Kick every REFRESH_SECONDS (API only; no scraping)."""
     while True:
         try:
             st = _kick_fetch_status()
             state["stream"] = {**st, "updated_at": int(time.time())}
-            # timeline for stats
+            # Log for stats timeline
             try:
                 con = db_conn()
                 con.execute("INSERT INTO stream_log(ts, live, viewers) VALUES(?,?,?)",
@@ -324,36 +396,39 @@ def refresh_stream_cache():
                 con.close()
             except Exception as exc:
                 log.warning(f"stream.log_failed err={exc!r}")
+
             state["health"]["kick_ok"] = True
             state["health"]["updated_at"] = int(time.time())
-            log.info(f"stream.status live={st.get('live')} viewers={st.get('viewers')} source={st.get('source')}")
+
+            log.info(
+                "stream.refresh ok=true live=%s viewers=%s source=%s",
+                st.get("live"), st.get("viewers"), st.get("source")
+            )
         except Exception as exc:
             state["health"]["kick_ok"] = False
             log.error(f"stream.refresh_failed err={exc!r}")
+
         time.sleep(REFRESH_SECONDS)
 
-# -----------------------------------------------------------------------------
-# One-time background start guard (Flask 3 safe)
-# -----------------------------------------------------------------------------
+# --------------------- One-time background start (Flask 3) -------------------
 _bg_lock = threading.Lock()
 _bg_started = False
 
 def start_background_threads_once():
+    """Idempotent background thread starter; safe to call from before_request."""
     global _bg_started
     if _bg_started:
         return
     with _bg_lock:
         if _bg_started:
             return
-        init_db()  # ensure analytics DB exists
+        init_db()
         threading.Thread(target=refresh_wager_cache, name="wager-cache", daemon=True).start()
         threading.Thread(target=refresh_stream_cache, name="stream-cache", daemon=True).start()
         _bg_started = True
-        log.info("background.threads_started interval=%ss", REFRESH_SECONDS)
+        log.info("background.started interval=%s", REFRESH_SECONDS)
 
-# -----------------------------------------------------------------------------
-# Routes / APIs
-# -----------------------------------------------------------------------------
+# ------------------------------- Routes --------------------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -373,6 +448,11 @@ def stream():
 @app.route("/stats")
 def stats_page():
     # Not linked from the homepage; accessible if you know the path.
+    return render_template("stats.html")
+
+@app.route("/stats.html")
+def stats_page_html():
+    # Convenience route so /stats.html works too (fixes 404 users sometimes hit).
     return render_template("stats.html")
 
 @app.route("/stats-data")
@@ -455,16 +535,20 @@ def stats_data():
             last = cur
         payload["leaderboard"]["podium_churn_24h"] = churn
 
+        # Updates today = number of leaderboard snapshots since midnight UTC
+        midnight_utc = int(datetime.combine(day_today, datetime.min.time()).timestamp())
+        payload["kpi"]["updates_today"] = con.execute(
+            "SELECT COUNT(*) c FROM podium_snapshots WHERE ts >= ?;",
+            (midnight_utc,)
+        ).fetchone()["c"]
+
         con.close()
     except Exception as exc:
         log.warning(f"stats.data_failed err={exc!r}")
 
     return jsonify(payload)
 
-# -----------------------------------------------------------------------------
-# Dev entrypoint (works for `python wager_backend.py`)
-# -----------------------------------------------------------------------------
+# ---------------------- Dev entrypoint (optional local) ----------------------
 if __name__ == "__main__":
-    # Ensure background threads also start when running directly
     start_background_threads_once()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
