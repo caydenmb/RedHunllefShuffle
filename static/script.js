@@ -106,16 +106,26 @@
       const r=await fetch('/stream',{cache:'no-store'}); if(!r.ok) throw new Error(r.status);
       const j=await r.json(); const live=!!j.live; const viewers=j.viewers??null;
       liveEl.classList.remove('live','off','unk');
-      if(live){ liveEl.classList.add('live'); text.textContent='LIVE NOW!'; if(typeof viewers==='number'){ viewerChip.style.display='inline-flex'; viewerChip.textContent=`${viewers.toLocaleString()} watching`; } else viewerChip.style.display='none'; }
-      else { liveEl.classList.add('off'); text.textContent='Offline'; viewerChip.style.display='none'; }
-    }catch(e){ liveEl.classList.remove('live','off'); liveEl.classList.add('unk'); text.textContent='Status unavailable'; viewerChip.style.display='none'; console.warn(e); }
+      if(live){
+        liveEl.classList.add('live'); text.textContent='LIVE NOW!';
+        if(typeof viewers==='number'){ viewerChip.style.display='inline-flex'; viewerChip.textContent=`${viewers.toLocaleString()} watching`; }
+        else viewerChip.style.display='none';
+      } else {
+        liveEl.classList.add('off'); text.textContent='Offline'; viewerChip.style.display='none';
+      }
+    }catch(e){
+      liveEl.classList.remove('live','off'); liveEl.classList.add('unk');
+      text.textContent='Status unavailable'; viewerChip.style.display='none'; console.warn(e);
+    }
   }
 
   async function initCountdown(){
     try{
       const r=await fetch('/config',{cache:'no-store'}); if(!r.ok) throw new Error(r.status);
       const j=await r.json(); const end=Number(j.end_time)||0;
-      function tick(){ const now=Math.floor(Date.now()/1000); let d=Math.max(0,end-now); const D=Math.floor(d/86400); d-=D*86400; const H=Math.floor(d/3600); d-=H*3600; const M=Math.floor(d/60); d-=M*60; const S=d; dd.textContent=String(D).padStart(2,'0'); hh.textContent=String(H).padStart(2,'0'); mm.textContent=String(M).padStart(2,'0'); ss.textContent=String(S).padStart(2,'0'); }
+      function tick(){ const now=Math.floor(Date.now()/1000); let d=Math.max(0,end-now);
+        const D=Math.floor(d/86400); d-=D*86400; const H=Math.floor(d/3600); d-=H*3600; const M=Math.floor(d/60); d-=M*60; const S=d;
+        dd.textContent=String(D).padStart(2,'0'); hh.textContent=String(H).padStart(2,'0'); mm.textContent=String(M).padStart(2,'0'); ss.textContent=String(S).padStart(2,'0'); }
       tick(); setInterval(tick,1000);
     }catch(e){ console.warn('[countdown] failed',e); }
   }
