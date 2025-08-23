@@ -7,7 +7,6 @@
   <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <style>
-    /* Light wrapper styling reusing the site’s theme */
     .stats-wrap{width:min(1100px,92%);margin:2rem auto}
     .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0 1.25rem}
     .kpi{background:#1b1b1b;border:1px solid #2a2a2a;border-radius:12px;padding:1rem;box-shadow:0 8px 28px rgba(0,0,0,.6);text-align:center}
@@ -45,20 +44,20 @@
     <div class="charts">
       <div class="panel">
         <h3>Visits per Day (30d)</h3>
-        <svg id="visits-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+        <svg id="visits-svg" class="svgbox" viewBox="0 0 600 220" aria-label="Visits per day chart"></svg>
       </div>
       <div class="panel">
         <h3>Top Referrers</h3>
-        <svg id="refs-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+        <svg id="refs-svg" class="svgbox" viewBox="0 0 600 220" aria-label="Top referrers chart"></svg>
       </div>
       <div class="panel">
         <h3>Device Breakdown</h3>
-        <svg id="devices-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+        <svg id="devices-svg" class="svgbox" viewBox="0 0 600 220" aria-label="Device breakdown donut"></svg>
         <div class="legend" id="devices-legend"></div>
       </div>
       <div class="panel">
         <h3>Live/Offline (48h)</h3>
-        <svg id="timeline-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+        <svg id="timeline-svg" class="svgbox" viewBox="0 0 600 220" aria-label="Live/offline timeline"></svg>
       </div>
     </div>
 

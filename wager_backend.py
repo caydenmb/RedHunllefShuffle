@@ -3,25 +3,19 @@ import os
 import re
 import json
 import time
-import math
-import queue
 import sqlite3
 import hashlib
 import secrets
 import logging
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import requests
 from flask import (
-    Flask, request, jsonify, render_template,
-    send_from_directory, abort
+    Flask, request, jsonify, render_template
 )
 
-# -----------------------------------------------------------------------------
-# Basic app config
-# -----------------------------------------------------------------------------
 APP_NAME = "redhunllefshuffle"
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
@@ -32,96 +26,77 @@ logging.basicConfig(
 )
 log = logging.getLogger(APP_NAME)
 
-# -----------------------------------------------------------------------------
-# Environment / simple settings
-# -----------------------------------------------------------------------------
-# Countdown end (race end). You can override via env var RACE_END_EPOCH.
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
 RACE_END_EPOCH = int(os.environ.get("RACE_END_EPOCH", str(int(time.time()) + 11*24*3600)))
-
-# Kick API credentials (optional; if missing or blocked we fall back gracefully)
+KICK_CHANNEL = os.environ.get("KICK_CHANNEL", "redhunllef")
 KICK_CLIENT_ID = os.environ.get("KICK_CLIENT_ID", "")
 KICK_CLIENT_SECRET = os.environ.get("KICK_CLIENT_SECRET", "")
-
-KICK_CHANNEL = os.environ.get("KICK_CHANNEL", "redhunllef")
-
-# Cache timing
 REFRESH_SECONDS = 60
 
-# Analytics DB path (stdlib sqlite3)
-AN_DB = os.environ.get("ANALYTICS_DB", "analytics.sqlite3")
+# --- Writable analytics DB path (instance folder) ---
+# If ANALYTICS_DB is defined, use it; else place DB in Flask instance dir.
+os.makedirs(app.instance_path, exist_ok=True)
+DEFAULT_DB = os.path.join(app.instance_path, "analytics.sqlite3")
+AN_DB = os.environ.get("ANALYTICS_DB", DEFAULT_DB)
 
-# -----------------------------------------------------------------------------
-# Helper: mask usernames for UI, keep full in logs
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 def mask_username(u: str) -> str:
     u = (u or "").strip()
-    if len(u) < 2:
-        return (u or "*") + "******"
-    return u[:2] + "******"
+    return (u[:2] + "******") if len(u) >= 2 else (u or "*") + "******"
 
-# -----------------------------------------------------------------------------
-# In-memory caches
-# -----------------------------------------------------------------------------
+def money(n) -> str:
+    try:
+        return f"${float(n):,.2f}"
+    except Exception:
+        return "$0.00"
+
+# ---------------------------------------------------------------------------
+# In-memory state
+# ---------------------------------------------------------------------------
 state = {
-    "data": {  # leaderboard cache
-        "podium": [],  # list of dicts: {username,wager}
-        "others": [],  # list of dicts: {rank,username,wager}
-        "updated_at": 0,
-    },
-    "stream": {  # live/offline cache
-        "live": False,
-        "viewers": None,
-        "source": "unknown",
-        "updated_at": 0,
-    },
-    "kick_token": {
-        "access_token": None,
-        "expires_at": 0,
-    },
-    "health": {  # last probe status booleans
-        "kick_ok": False,
-        "shuffle_ok": True,
-        "cache_ok": True,
-        "updated_at": 0,
-    }
+    "data": {"podium": [], "others": [], "updated_at": 0},
+    "stream": {"live": False, "viewers": None, "source": "unknown", "updated_at": 0},
+    "kick_token": {"access_token": None, "expires_at": 0},
+    "health": {"kick_ok": False, "shuffle_ok": True, "cache_ok": True, "updated_at": 0}
 }
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Analytics (stdlib only)
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 BOT_RE = re.compile(r"(bot|crawler|spider|fetch|monitor|pingdom|curl|wget)", re.I)
-MOBILE_RE = re.compile(r"(iphone|android|ipad|mobile)", re.I)
+MOBILE_RE = re.compile(r"(iphone|android|mobile)", re.I)
 TABLET_RE = re.compile(r"(ipad|tablet)", re.I)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS visits (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  day TEXT NOT NULL,           -- 'YYYY-MM-DD'
-  ts INTEGER NOT NULL,         -- epoch seconds
-  visitor_id TEXT NOT NULL,    -- sha256(ip + daily_salt)
-  session_id TEXT NOT NULL,    -- coarse session (hash ip+ua for day)
+  day TEXT NOT NULL,
+  ts INTEGER NOT NULL,
+  visitor_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
   path TEXT NOT NULL,
   referrer TEXT,
-  device TEXT NOT NULL         -- 'mobile'|'desktop'|'tablet'
+  device TEXT NOT NULL
 );
-
 CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day);
 CREATE INDEX IF NOT EXISTS idx_visits_vid ON visits(visitor_id);
 CREATE INDEX IF NOT EXISTS idx_visits_ts  ON visits(ts);
 
 CREATE TABLE IF NOT EXISTS podium_snapshots (
-  ts INTEGER NOT NULL,         -- epoch seconds
+  ts INTEGER NOT NULL,
   first TEXT, second TEXT, third TEXT
 );
-
 CREATE INDEX IF NOT EXISTS idx_podium_ts ON podium_snapshots(ts);
 
 CREATE TABLE IF NOT EXISTS stream_log (
   ts INTEGER NOT NULL,
-  live INTEGER NOT NULL,       -- 0/1
+  live INTEGER NOT NULL,
   viewers INTEGER
 );
-
 CREATE INDEX IF NOT EXISTS idx_stream_ts ON stream_log(ts);
 
 CREATE TABLE IF NOT EXISTS salts (
@@ -137,108 +112,95 @@ def db_conn():
     return con
 
 def init_db():
-    con = db_conn()
     try:
+        con = db_conn()
         con.executescript(SCHEMA)
         con.commit()
+    except Exception as exc:
+        log.warning(f"analytics.init_db_failed err={exc!r}")
     finally:
-        con.close()
+        try:
+            con.close()
+        except Exception:
+            pass
 
-init_db()
+def day_str(ts=None):
+    return datetime.utcfromtimestamp(ts or time.time()).strftime("%Y-%m-%d")
 
 def get_daily_salt(day: str) -> str:
-    """Returns a stable daily salt; generates and stores if missing."""
     con = db_conn()
     try:
-        cur = con.execute("SELECT salt FROM salts WHERE day=?;", (day,))
-        row = cur.fetchone()
-        if row:
-            return row["salt"]
-        new = secrets.token_hex(16)
-        con.execute("INSERT OR REPLACE INTO salts(day, salt) VALUES(?,?);", (day, new))
+        r = con.execute("SELECT salt FROM salts WHERE day=?;", (day,)).fetchone()
+        if r:
+            return r["salt"]
+        salt = secrets.token_hex(16)
+        con.execute("INSERT INTO salts(day, salt) VALUES(?,?)", (day, salt))
         con.commit()
-        return new
+        return salt
     finally:
         con.close()
 
 def device_from_ua(ua: str) -> str:
-    if not ua:
-        return "desktop"
-    if TABLET_RE.search(ua):
-        return "tablet"
-    if MOBILE_RE.search(ua):
-        return "mobile"
+    if not ua: return "desktop"
+    if TABLET_RE.search(ua): return "tablet"
+    if MOBILE_RE.search(ua): return "mobile"
     return "desktop"
 
 def is_bot(ua: str) -> bool:
-    if not ua:
-        return False
-    return bool(BOT_RE.search(ua))
+    return bool(ua and BOT_RE.search(ua))
 
-def coarse_hash(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+def sha(v: str) -> str:
+    return hashlib.sha256(v.encode("utf-8")).hexdigest()
 
 def track_visit():
-    """Light, privacy-safe analytics for '/','/stats' (GET)."""
+    """Anonymous visit logging for '/' and '/stats'. Safe in readonly envs."""
     try:
-        if request.method != "GET":
-            return
-        if request.args.get("no_track") == "1":
-            return
-        if request.headers.get("DNT") == "1":
-            return
+        if request.method != "GET": return
+        if request.args.get("no_track") == "1": return
+        if request.headers.get("DNT") == "1": return
 
         ua = request.headers.get("User-Agent", "")
-        if is_bot(ua):
+        if is_bot(ua): return
+
+        if request.path not in ("/", "/stats"):  # keep stats lean
             return
 
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "0.0.0.0").split(",")[0].strip()
-        path = request.path
-        if path not in ("/", "/stats"):
-            # keep analytics focused; skip JSON APIs by default
-            return
-
+        ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "0.0.0.0").split(",")[0].strip()
         now = int(time.time())
-        day = datetime.utcnow().strftime("%Y-%m-%d")
-        salt = get_daily_salt(day)
-        visitor_id = coarse_hash(f"{ip}|{salt}")
-        # crude session: hash of ip + UA + day
-        session_id = coarse_hash(f"{ip}|{ua}|{day}")
+        day = day_str(now)
         ref = request.headers.get("Referer", "")
-        ref_host = ""
-        if ref:
-            try:
-                ref_host = urlparse(ref).hostname or ""
-            except Exception:
-                ref_host = ""
+        try:
+            ref_host = urlparse(ref).hostname or ""
+        except Exception:
+            ref_host = ""
 
+        salt = get_daily_salt(day)
+        visitor_id = sha(f"{ip}|{salt}")
+        session_id = sha(f"{ip}|{ua}|{day}")
         dev = device_from_ua(ua)
 
         con = db_conn()
         try:
             con.execute(
-                "INSERT INTO visits(day, ts, visitor_id, session_id, path, referrer, device) "
-                "VALUES(?,?,?,?,?,?,?);",
-                (day, now, visitor_id, session_id, path, ref_host, dev)
+                "INSERT INTO visits(day, ts, visitor_id, session_id, path, referrer, device) VALUES(?,?,?,?,?,?,?)",
+                (day, now, visitor_id, session_id, request.path, ref_host, dev)
             )
             con.commit()
         finally:
             con.close()
     except Exception as exc:
-        log.warning(f"analytics.track_failed error={exc!r}")
+        # Never break the request on analytics errors
+        log.warning(f"analytics.track_failed err={exc!r}")
 
 @app.before_request
-def _before_request():
+def _before():
     track_visit()
 
-# -----------------------------------------------------------------------------
-# Leaderboard data: Replace the two fetchers below with your real sources.
-# To keep this file self-contained, we simulate a structure that the frontend expects.
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Demo leaderboard source (replace with your real data pull)
+# ---------------------------------------------------------------------------
 def _demo_wager_data():
-    """Simulated data structure with full names (logged) and masked names (served)."""
-    # In your live app, pull real data here and map into the same shape.
-    sample = [
+    return [
         {"username": "swizzle", "wager": 228857.91},
         {"username": "liquid",  "wager": 38763.90},
         {"username": "butter",  "wager": 22008.13},
@@ -250,71 +212,47 @@ def _demo_wager_data():
         {"username": "ekko",    "wager":  3019.25},
         {"username": "tenant",  "wager":  2957.38},
     ]
-    return sample
 
 def refresh_wager_cache():
-    """Refreshes leaderboard cache every REFRESH_SECONDS. Logs full names to console."""
     while True:
         try:
-            data = _demo_wager_data()  # TODO: replace w/ real pull
-
-            # Sort descending by numeric wager
+            data = _demo_wager_data()               # TODO: replace with live source
             data.sort(key=lambda r: float(r["wager"]), reverse=True)
 
-            # Log full names to console (uncensored)
-            top3 = [d["username"] for d in data[:3]]
-            log.info(f"leaderboard.top3 full={top3}")
+            # Log full, uncensored top3 for ops
+            log.info(f"leaderboard.top3 full={[d['username'] for d in data[:3]]}")
 
-            # Prepare podium (top 3 shown)
-            podium = [{"username": mask_username(d["username"]),
-                       "wager": f"${float(d['wager']):,.2f}"} for d in data[:3]]
+            podium = [{"username": mask_username(d["username"]), "wager": money(d["wager"])} for d in data[:3]]
+            others = [{"rank": i+4, "username": mask_username(d["username"]), "wager": money(d["wager"])}
+                      for i, d in enumerate(data[3:10])]
 
-            # Prepare others (ranks 4..10)
-            others = []
-            for idx, d in enumerate(data[3:10], start=4):
-                others.append({
-                    "rank": idx,
-                    "username": mask_username(d["username"]),
-                    "wager": f"${float(d['wager']):,.2f}"
-                })
+            state["data"] = {"podium": podium, "others": others, "updated_at": int(time.time())}
 
-            # Update cache
-            state["data"] = {
-                "podium": podium,
-                "others": others,
-                "updated_at": int(time.time())
-            }
-
-            # Save podium snapshot for churn stats
+            # Save snapshot for churn stats
             try:
                 con = db_conn()
-                con.execute(
-                    "INSERT INTO podium_snapshots(ts, first, second, third) VALUES(?,?,?,?);",
-                    (int(time.time()),
-                     (data[0]["username"] if len(data) > 0 else None),
-                     (data[1]["username"] if len(data) > 1 else None),
-                     (data[2]["username"] if len(data) > 2 else None))
-                )
+                con.execute("INSERT INTO podium_snapshots(ts, first, second, third) VALUES(?,?,?,?)",
+                            (int(time.time()),
+                             data[0]["username"] if len(data)>0 else None,
+                             data[1]["username"] if len(data)>1 else None,
+                             data[2]["username"] if len(data)>2 else None))
                 con.commit()
                 con.close()
             except Exception as exc:
-                log.warning(f"podium.snapshot_failed error={exc!r}")
+                log.warning(f"podium.snapshot_failed err={exc!r}")
 
-            # Health
-            state["health"]["shuffle_ok"] = True
             state["health"]["cache_ok"] = True
+            state["health"]["shuffle_ok"] = True
             state["health"]["updated_at"] = int(time.time())
-
         except Exception as exc:
-            log.error(f"leaderboard.refresh_failed err={exc!r}")
             state["health"]["cache_ok"] = False
-
+            log.error(f"leaderboard.refresh_failed err={exc!r}")
         time.sleep(REFRESH_SECONDS)
 
-# -----------------------------------------------------------------------------
-# Kick stream status
-# -----------------------------------------------------------------------------
-def _kick_get_token() -> str | None:
+# ---------------------------------------------------------------------------
+# Kick live status (token optional; fallback to HTML sniff)
+# ---------------------------------------------------------------------------
+def _kick_get_token():
     if not (KICK_CLIENT_ID and KICK_CLIENT_SECRET):
         return None
     now = int(time.time())
@@ -327,9 +265,9 @@ def _kick_get_token() -> str | None:
                 "grant_type": "client_credentials",
                 "client_id": KICK_CLIENT_ID,
                 "client_secret": KICK_CLIENT_SECRET,
-                "scope": "public"
+                "scope": "public",
             },
-            timeout=10
+            timeout=10,
         )
         if r.status_code == 200:
             tok = r.json()
@@ -340,14 +278,11 @@ def _kick_get_token() -> str | None:
         log.warning(f"kick.token_failed err={exc!r}")
     return None
 
-def _kick_fetch_status() -> dict:
-    """Try official API with bearer; if blocked, fall back to page scrape."""
+def _kick_fetch_status():
     headers = {"Accept": "application/json"}
-    token = _kick_get_token()
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    tok = _kick_get_token()
+    if tok: headers["Authorization"] = f"Bearer {tok}"
 
-    # Official-ish endpoints may vary; try two patterns:
     for url in [
         f"https://kick.com/api/v2/channels/{KICK_CHANNEL}/livestream",
         f"https://kick.com/api/v1/channels/{KICK_CHANNEL}/livestream",
@@ -366,12 +301,11 @@ def _kick_fetch_status() -> dict:
         except Exception as exc:
             log.warning(f"kick.fetch_failed url='{url}' err={exc!r}")
 
-    # Fallback: basic HTML scrape (very conservative)
+    # Fallback HTML
     try:
         url = f"https://kick.com/{KICK_CHANNEL}"
         r = requests.get(url, timeout=10)
         live = ("isLive" in r.text) or ("Live Now" in r.text)
-        # viewer count not reliably parsable in static HTML -> None
         return {"live": live, "viewers": None, "source": "fallback"}
     except Exception as exc:
         log.warning(f"kick.fallback_failed err={exc!r}")
@@ -381,22 +315,16 @@ def refresh_stream_cache():
     while True:
         try:
             st = _kick_fetch_status()
-            state["stream"] = {
-                **st,
-                "updated_at": int(time.time())
-            }
-            # Log stream status history for stats timeline
+            state["stream"] = {**st, "updated_at": int(time.time())}
+            # timeline for stats
             try:
                 con = db_conn()
-                con.execute(
-                    "INSERT INTO stream_log(ts, live, viewers) VALUES(?,?,?);",
-                    (int(time.time()), 1 if st.get("live") else 0, st.get("viewers"))
-                )
+                con.execute("INSERT INTO stream_log(ts, live, viewers) VALUES(?,?,?)",
+                            (int(time.time()), 1 if st.get("live") else 0, st.get("viewers")))
                 con.commit()
                 con.close()
             except Exception as exc:
-                log.warning(f"stream.log_failed error={exc!r}")
-
+                log.warning(f"stream.log_failed err={exc!r}")
             state["health"]["kick_ok"] = True
             state["health"]["updated_at"] = int(time.time())
             log.info(f"stream.status live={st.get('live')} viewers={st.get('viewers')} source={st.get('source')}")
@@ -405,160 +333,147 @@ def refresh_stream_cache():
             log.error(f"stream.refresh_failed err={exc!r}")
         time.sleep(REFRESH_SECONDS)
 
-# -----------------------------------------------------------------------------
-# JSON APIs consumed by the frontend
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# One-time background start guard
+# ---------------------------------------------------------------------------
+_bg_lock = threading.Lock()
+_bg_started = False
+
+def start_background_threads_once():
+    global _bg_started
+    with _bg_lock:
+        if _bg_started:
+            return
+        init_db()  # ensure analytics DB exists
+        threading.Thread(target=refresh_wager_cache, name="wager-cache", daemon=True).start()
+        threading.Thread(target=refresh_stream_cache, name="stream-cache", daemon=True).start()
+        _bg_started = True
+        log.info("background.threads_started interval=%ss", REFRESH_SECONDS)
+
+@app.before_first_request
+def _warmup():
+    start_background_threads_once()
+
+# ---------------------------------------------------------------------------
+# Routes / APIs
+# ---------------------------------------------------------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
 @app.route("/data")
-def api_data():
+def data():
     return jsonify(state["data"])
 
 @app.route("/config")
-def api_config():
+def config():
     return jsonify({"end_time": RACE_END_EPOCH})
 
 @app.route("/stream")
-def api_stream():
+def stream():
     return jsonify(state["stream"])
 
 @app.route("/stats")
 def stats_page():
-    # No link from home; you can share /stats directly.
+    # Not linked from the homepage; accessible if you know the path.
     return render_template("stats.html")
 
 @app.route("/stats-data")
 def stats_data():
-    """Aggregated, anonymized metrics for stats page."""
+    """Aggregated, anonymized metrics with safe fallbacks if DB unavailable."""
     now = int(time.time())
-    day_today = datetime.utcnow().date()
+    day_today = datetime.utcfromtimestamp(now).date()
     day_30_ago = day_today - timedelta(days=30)
-    day_48h_ago_ts = now - 48*3600
+    start_48h = now - 48*3600
 
-    con = db_conn()
+    # Default empty payload (in case DB cannot open)
+    payload = {
+        "kpi": {
+            "total_visits": 0, "unique_30d": 0, "online_now": 0,
+            "avg_session_seconds": 0, "updates_today": 0,
+            "api_health": {
+                "kick_ok": bool(state["health"]["kick_ok"]),
+                "shuffle_ok": bool(state["health"]["shuffle_ok"]),
+                "cache_ok": bool(state["health"]["cache_ok"]),
+                "updated_at": state["health"]["updated_at"],
+            }
+        },
+        "series": {
+            "visits_per_day": [],
+            "top_referrers": [],
+            "devices": {},
+            "stream_timeline": [],
+        },
+        "leaderboard": {"podium_churn_24h": 0, "biggest_climb": None}
+    }
+
     try:
+        con = db_conn()
         # KPIs
-        total_visits = con.execute("SELECT COUNT(*) c FROM visits;").fetchone()["c"]
-        unique_30d = con.execute(
+        payload["kpi"]["total_visits"] = con.execute("SELECT COUNT(*) c FROM visits;").fetchone()["c"]
+        payload["kpi"]["unique_30d"] = con.execute(
             "SELECT COUNT(DISTINCT visitor_id) c FROM visits WHERE day >= ?;",
             (day_30_ago.strftime("%Y-%m-%d"),)
         ).fetchone()["c"]
-
-        online_5m = con.execute(
+        payload["kpi"]["online_now"] = con.execute(
             "SELECT COUNT(DISTINCT session_id) c FROM visits WHERE ts >= ?;",
             (now - 300,)
         ).fetchone()["c"]
-
-        # Avg session length (very approximate): per session_id today's first/last
         rows = con.execute(
             "SELECT session_id, MIN(ts) mi, MAX(ts) ma FROM visits WHERE day=? GROUP BY session_id;",
             (day_today.strftime("%Y-%m-%d"),)
         ).fetchall()
-        if rows:
-            avg_session = sum((r["ma"] - r["mi"]) for r in rows) / len(rows)
-        else:
-            avg_session = 0
+        payload["kpi"]["avg_session_seconds"] = int(
+            sum((r["ma"] - r["mi"]) for r in rows) / len(rows)) if rows else 0
 
-        # Visits per day (last 30)
-        visits_series = con.execute(
-            "SELECT day, COUNT(*) c FROM visits WHERE day >= ? GROUP BY day ORDER BY day ASC;",
-            (day_30_ago.strftime("%Y-%m-%d"),)
-        ).fetchall()
-        visits_series = [{"day": r["day"], "count": r["c"]} for r in visits_series]
-
-        # Top referrers (last 30)
-        ref_rows = con.execute(
-            "SELECT referrer, COUNT(*) c FROM visits WHERE day >= ? AND referrer IS NOT NULL "
-            "AND referrer <> '' GROUP BY referrer ORDER BY c DESC LIMIT 5;",
-            (day_30_ago.strftime("%Y-%m-%d"),)
-        ).fetchall()
-        top_referrers = [{"referrer": r["referrer"], "count": r["c"]} for r in ref_rows]
-
-        # Device breakdown (last 30)
-        dev_rows = con.execute(
+        # Series
+        payload["series"]["visits_per_day"] = [
+            {"day": r["day"], "count": r["c"]} for r in con.execute(
+                "SELECT day, COUNT(*) c FROM visits WHERE day >= ? GROUP BY day ORDER BY day ASC;",
+                (day_30_ago.strftime("%Y-%m-%d"),)
+            ).fetchall()
+        ]
+        payload["series"]["top_referrers"] = [
+            {"referrer": r["referrer"], "count": r["c"]} for r in con.execute(
+                "SELECT referrer, COUNT(*) c FROM visits WHERE day >= ? AND referrer IS NOT NULL "
+                "AND referrer <> '' GROUP BY referrer ORDER BY c DESC LIMIT 5;",
+                (day_30_ago.strftime("%Y-%m-%d"),)
+            ).fetchall()
+        ]
+        payload["series"]["devices"] = {r["device"]: r["c"] for r in con.execute(
             "SELECT device, COUNT(*) c FROM visits WHERE day >= ? GROUP BY device;",
             (day_30_ago.strftime("%Y-%m-%d"),)
-        ).fetchall()
-        devices = {r["device"]: r["c"] for r in dev_rows}
+        ).fetchall()}
+        payload["series"]["stream_timeline"] = [
+            {"ts": r["ts"], "live": bool(r["live"]), "viewers": r["viewers"]} for r in con.execute(
+                "SELECT ts, live, viewers FROM stream_log WHERE ts >= ? ORDER BY ts ASC;",
+                (start_48h,)
+            ).fetchall()
+        ]
 
-        # Stream timeline (48h)
-        stream_rows = con.execute(
-            "SELECT ts, live, viewers FROM stream_log WHERE ts >= ? ORDER BY ts ASC;",
-            (day_48h_ago_ts,)
-        ).fetchall()
-        stream_timeline = [{"ts": r["ts"], "live": bool(r["live"]), "viewers": r["viewers"]} for r in stream_rows]
-
-        # Podium churn (24h) + biggest climb
-        podium_rows = con.execute(
-            "SELECT ts, first, second, third FROM podium_snapshots WHERE ts >= ? ORDER BY ts ASC;",
-            (now - 24*3600,)
-        ).fetchall()
+        # Podium churn (24h)
         churn = 0
         last = None
-        for r in podium_rows:
+        for r in con.execute(
+            "SELECT ts, first, second, third FROM podium_snapshots WHERE ts >= ? ORDER BY ts ASC;",
+            (now - 24*3600,)
+        ):
             cur = (r["first"], r["second"], r["third"])
             if last and cur != last:
                 churn += sum(1 for a, b in zip(cur, last) if a != b)
             last = cur
+        payload["leaderboard"]["podium_churn_24h"] = churn
 
-        # For biggest climb we’d need position history; we’ll report churn only (safe & simple).
-        biggest_climb = None
-
-        # Health
-        health = state["health"]
-
-        payload = {
-            "kpi": {
-                "total_visits": total_visits,
-                "unique_30d": unique_30d,
-                "online_now": online_5m,
-                "avg_session_seconds": int(avg_session),
-                "updates_today": sum(1 for r in stream_rows if True),  # placeholder proxy for activity
-                "api_health": {
-                    "kick_ok": bool(health["kick_ok"]),
-                    "shuffle_ok": bool(health["shuffle_ok"]),
-                    "cache_ok": bool(health["cache_ok"]),
-                    "updated_at": health["updated_at"],
-                }
-            },
-            "series": {
-                "visits_per_day": visits_series,
-                "top_referrers": top_referrers,
-                "devices": devices,
-                "stream_timeline": stream_timeline,
-            },
-            "leaderboard": {
-                "podium_churn_24h": churn,
-                "biggest_climb": biggest_climb
-            }
-        }
-        return jsonify(payload)
-    finally:
         con.close()
+    except Exception as exc:
+        log.warning(f"stats.data_failed err={exc!r}")
 
-# -----------------------------------------------------------------------------
-# 404
-# -----------------------------------------------------------------------------
-@app.errorhandler(404)
-def not_found(e):
-    return render_template("404.html"), 404
+    return jsonify(payload)
 
-# -----------------------------------------------------------------------------
-# Background threads
-# -----------------------------------------------------------------------------
-def _boot_threads():
-    t1 = threading.Thread(target=refresh_wager_cache, name="wager-cache", daemon=True)
-    t2 = threading.Thread(target=refresh_stream_cache, name="stream-cache", daemon=True)
-    t1.start()
-    t2.start()
-
-_boot_threads()
-
-# -----------------------------------------------------------------------------
-# Entrypoint
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Dev entrypoint
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Dev server
+    # Ensure background threads also start when running `python wager_backend.py`
+    start_background_threads_once()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
