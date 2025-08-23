@@ -1,12 +1,11 @@
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const podiumEl = $('#podium');
-  const othersEl = $('#others-list');
-  const liveEl = $('#liveStatus');
-  const viewerChip = $('.viewer-chip', liveEl);
-  const text = $('.text', liveEl);
+  const podiumEl   = $('#podium');
+  const othersEl   = $('#others-list');
+  const liveEl     = $('#liveStatus');
+  const viewerChip = liveEl?.querySelector('.viewer-chip');
+  const text       = liveEl?.querySelector('.text');
 
   const dd = $('#dd'), hh = $('#hh'), mm = $('#mm'), ss = $('#ss');
   const yearOut = $('#year');
@@ -38,41 +37,42 @@
     return (n ?? 0).toLocaleString();
   }
 
-  /** Build the podium (top 3). Input may be unsorted; we sort by wager DESC. */
+  /** Build the podium with 1st place in the MIDDLE (Olympic style) */
   function buildPodium(podiumRaw) {
-    // Normalize entries: { username, wager } where wager is a currency string/number
-    const podium = (podiumRaw || []).slice().map(e => ({
+    // Normalize and sort by wager descending
+    const norm = (podiumRaw || []).map(e => ({
       username: e?.username ?? '--',
       wagerStr: e?.wager ?? '$0.00',
       wagerNum: moneyToNumber(e?.wager)
     }));
+    norm.sort((a, b) => b.wagerNum - a.wagerNum);
 
-    // Sort by wager descending; take top 3
-    podium.sort((a, b) => b.wagerNum - a.wagerNum);
-    const top3 = podium.slice(0, 3);
+    // Top 3 after sorting
+    const first  = norm[0] || { username: '--', wagerStr: '$0.00' };
+    const second = norm[1] || { username: '--', wagerStr: '$0.00' };
+    const third  = norm[2] || { username: '--', wagerStr: '$0.00' };
 
-    // Map to proper positions: 1st, 2nd, 3rd
-    const slots = [
-      { place: 1, cls: 'col-first',  medal: '🥇' },
-      { place: 2, cls: 'col-second', medal: '🥈' },
-      { place: 3, cls: 'col-third',  medal: '🥉' }
+    // Render order = [second, first, third] to place 1st at the center column
+    const seats = [
+      { place: 2, cls: 'col-second', medal: '🥈', entry: second },
+      { place: 1, cls: 'col-first',  medal: '🥇', entry: first  },
+      { place: 3, cls: 'col-third',  medal: '🥉', entry: third  },
     ];
 
     podiumEl.innerHTML = '';
-    slots.forEach((slot, i) => {
-      const entry = top3[i] || { username: '--', wagerStr: '$0.00' };
-      const seat = document.createElement('article');
-      seat.className = `podium-seat ${slot.cls} fade-in`;
-      seat.innerHTML = `
-        <span class="rank-badge">${slot.place}</span>
-        <div class="crown">${slot.medal}</div>
-        <div class="user">${entry.username}</div>
+    seats.forEach(s => {
+      const el = document.createElement('article');
+      el.className = `podium-seat ${s.cls} fade-in`;
+      el.innerHTML = `
+        <span class="rank-badge">${s.place}</span>
+        <div class="crown">${s.medal}</div>
+        <div class="user">${s.entry.username}</div>
         <div class="label">WAGERED</div>
-        <div class="wager">${entry.wagerStr}</div>
+        <div class="wager">${s.entry.wagerStr}</div>
         <div class="label">PRIZE</div>
-        <div class="prize">${PRIZES[slot.place]}</div>
+        <div class="prize">${PRIZES[s.place]}</div>
       `;
-      podiumEl.appendChild(seat);
+      podiumEl.appendChild(el);
     });
   }
 
@@ -85,16 +85,20 @@
       wagerNum: moneyToNumber(e?.wager)
     }));
 
-    // If rank is provided, sort ascending by rank
+    if (others.length === 0) {
+      othersEl.innerHTML = '';
+      return;
+    }
+
+    // If rank is provided, sort ascending by rank; else sort by wager desc then rank 4..10
     if (others.every(o => typeof o.rank === 'number')) {
       others.sort((a, b) => a.rank - b.rank);
     } else {
-      // Fallback: sort by wager DESC and then assign ranks 4..10
       others.sort((a, b) => b.wagerNum - a.wagerNum);
       others = others.map((o, idx) => ({ ...o, rank: 4 + idx }));
     }
 
-    // Ensure exactly 7 items (4..10); pad if the backend returns fewer
+    // Ensure exactly 7 items (4..10)
     const desired = 7;
     if (others.length < desired) {
       const pad = Array.from({ length: desired - others.length }, (_, i) => ({
@@ -125,20 +129,17 @@
       const r = await fetch('/data', { cache: 'no-store' });
       if (!r.ok) throw new Error(`data status ${r.status}`);
       const j = await r.json();
-
-      // Expect: { podium: [...], others: [...] } (but we guard against mis-ordering)
       buildPodium(j.podium || []);
       buildOthers(j.others || []);
-
       console.info('[leaderboard] updated', j);
     } catch (e) {
       console.error('[leaderboard] failed', e);
-      // Keep previous DOM so the page doesn’t blank out on transient errors
     }
   }
 
   /** Live badge: “LIVE NOW!” + viewer count when available */
   async function fetchStream() {
+    if (!liveEl) return;
     try {
       const r = await fetch('/stream', { cache: 'no-store' });
       if (!r.ok) throw new Error(`stream status ${r.status}`);
