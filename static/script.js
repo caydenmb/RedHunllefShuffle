@@ -37,9 +37,12 @@
     return (n ?? 0).toLocaleString();
   }
 
-  /** Build the podium with 1st place in the MIDDLE (Olympic style) */
+  // Keep previous values to animate changes
+  let prevTop3 = [];
+  let prevOthers = [];
+
+  /** Build the podium with 1st place in the MIDDLE (Olympic style on desktop) */
   function buildPodium(podiumRaw) {
-    // Normalize and sort by wager descending
     const norm = (podiumRaw || []).map(e => ({
       username: e?.username ?? '--',
       wagerStr: e?.wager ?? '$0.00',
@@ -47,12 +50,10 @@
     }));
     norm.sort((a, b) => b.wagerNum - a.wagerNum);
 
-    // Top 3 after sorting
-    const first  = norm[0] || { username: '--', wagerStr: '$0.00' };
-    const second = norm[1] || { username: '--', wagerStr: '$0.00' };
-    const third  = norm[2] || { username: '--', wagerStr: '$0.00' };
+    const first  = norm[0] || { username: '--', wagerStr: '$0.00', wagerNum: 0 };
+    const second = norm[1] || { username: '--', wagerStr: '$0.00', wagerNum: 0 };
+    const third  = norm[2] || { username: '--', wagerStr: '$0.00', wagerNum: 0 };
 
-    // Render order = [second, first, third] to place 1st at the center column
     const seats = [
       { place: 2, cls: 'col-second', medal: '🥈', entry: second },
       { place: 1, cls: 'col-first',  medal: '🥇', entry: first  },
@@ -60,7 +61,7 @@
     ];
 
     podiumEl.innerHTML = '';
-    seats.forEach(s => {
+    seats.forEach((s, idx) => {
       const el = document.createElement('article');
       el.className = `podium-seat ${s.cls} fade-in`;
       el.innerHTML = `
@@ -73,10 +74,19 @@
         <div class="prize">${PRIZES[s.place]}</div>
       `;
       podiumEl.appendChild(el);
+
+      // flash if value changed
+      if (prevTop3[idx]?.username !== s.entry.username ||
+          prevTop3[idx]?.wagerStr !== s.entry.wagerStr) {
+        el.classList.add('value-changed');
+        setTimeout(() => el.classList.remove('value-changed'), 900);
+      }
     });
+
+    prevTop3 = seats.map(s => ({ u: s.entry.username, w: s.entry.wagerStr }));
   }
 
-  /** Build placements 4–10. Prefer rank order; if absent, use wager DESC and assign ranks. */
+  /** Build placements 4–10. Prefer rank order; else wager DESC then assign ranks. */
   function buildOthers(othersRaw) {
     let others = (othersRaw || []).map(e => ({
       rank: typeof e?.rank === 'number' ? e.rank : null,
@@ -85,12 +95,6 @@
       wagerNum: moneyToNumber(e?.wager)
     }));
 
-    if (others.length === 0) {
-      othersEl.innerHTML = '';
-      return;
-    }
-
-    // If rank is provided, sort ascending by rank; else sort by wager desc then rank 4..10
     if (others.every(o => typeof o.rank === 'number')) {
       others.sort((a, b) => a.rank - b.rank);
     } else {
@@ -98,14 +102,10 @@
       others = others.map((o, idx) => ({ ...o, rank: 4 + idx }));
     }
 
-    // Ensure exactly 7 items (4..10)
     const desired = 7;
     if (others.length < desired) {
       const pad = Array.from({ length: desired - others.length }, (_, i) => ({
-        rank: 4 + others.length + i,
-        username: '--',
-        wagerStr: '$0.00',
-        wagerNum: 0
+        rank: 4 + others.length + i, username: '--', wagerStr: '$0.00', wagerNum: 0
       }));
       others = others.concat(pad);
     } else if (others.length > desired) {
@@ -121,6 +121,19 @@
         <div class="prize">${PRIZES[o.rank] || '$0.00'}</div>
       </li>
     `).join('');
+
+    // flash changed rows
+    const nowKey = others.map(o => `${o.rank}|${o.username}|${o.wagerStr}`);
+    nowKey.forEach((k, i) => {
+      if (prevOthers[i] && prevOthers[i] !== k) {
+        const node = othersEl.children[i];
+        if (node) {
+          node.classList.add('value-changed');
+          setTimeout(() => node.classList.remove('value-changed'), 900);
+        }
+      }
+    });
+    prevOthers = nowKey;
   }
 
   /** Pull leaderboard data and render */
@@ -131,7 +144,7 @@
       const j = await r.json();
       buildPodium(j.podium || []);
       buildOthers(j.others || []);
-      console.info('[leaderboard] updated', j);
+      console.info('[leaderboard] updated');
     } catch (e) {
       console.error('[leaderboard] failed', e);
     }
@@ -162,7 +175,6 @@
         text.textContent = 'Offline';
         viewerChip.style.display = 'none';
       }
-      console.info('[stream] status', j);
     } catch (e) {
       liveEl.classList.remove('live', 'off');
       liveEl.classList.add('unk');

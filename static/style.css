@@ -4,7 +4,8 @@
 :root{
   --bg:#0f0f0f; --card:#141414; --card-2:#1b1b1b; --border:#2a2a2a;
   --accent:#52ff33; --text:#f0f0f0; --text-alt:#b5b5b5;
-  --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32; --shadow:0 8px 28px rgba(0,0,0,.6)
+  --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32; --shadow:0 8px 28px rgba(0,0,0,.6);
+  --radius:16px;
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -25,76 +26,78 @@ a:hover{color:#a5bbff}
 .brand-title{font-size:clamp(1.05rem,2.2vw,1.25rem);font-weight:900;letter-spacing:.2px}
 
 /* ===== Hero ===== */
-.hero{background:radial-gradient(1000px 500px at 20% -10%,#242424 10%,transparent 60%),linear-gradient(135deg,#111,#171717);padding:clamp(2.4rem,4.5vw,3.5rem) 0 clamp(1.6rem,3vw,2.5rem);text-align:center;border-bottom:1px solid var(--border)}
-.hero-heading{font-size:clamp(1.6rem,4.6vw,2.3rem);font-weight:900;letter-spacing:-.01em;margin-bottom:.8rem}
+.hero{background:radial-gradient(1000px 500px at 20% -10%,#242424 10%,transparent 60%),linear-gradient(135deg,#111,#171717);padding:clamp(2.1rem,4.5vw,3.3rem) 0 clamp(1.2rem,3vw,2.1rem);text-align:center;border-bottom:1px solid var(--border)}
+.hero-heading{font-size:clamp(1.5rem,4.4vw,2.1rem);font-weight:900;letter-spacing:-.01em;margin-bottom:.7rem}
 
-/* Live status badge */
+/* Live status badge – refined + glowing ring when live */
 .live-status{display:inline-flex;align-items:center;gap:.6rem;margin:.25rem 0 1.1rem;background:var(--card-2);border:1px solid var(--border);border-radius:999px;padding:.45rem .75rem .45rem .55rem;box-shadow:var(--shadow)}
 .live-status .dot{width:.65rem;height:.65rem;border-radius:999px;background:#999;animation:none}
 .live-status.live  .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
 .live-status.off   .dot{background:#666}
 .live-status.unk   .dot{background:#999}
 .live-status .text{font-weight:900;color:#fff}
+.live-status.live{box-shadow:0 0 0 2px #ff474755, 0 0 22px #ff474733, var(--shadow)}
 .live-status .live-cta{margin-left:.4rem;font-weight:900;color:#fff;text-decoration:none;background:#26c281;border-radius:999px;padding:.35rem .7rem}
 .live-status .live-cta:hover{filter:brightness(1.05)}
 .viewer-chip{display:none;align-items:center;gap:.35rem;background:#202b20;color:#d8ffd3;border:1px solid #2f4e2f;border-radius:999px;padding:.25rem .6rem;font-weight:800;font-size:.85rem}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 
 /* Countdown pills */
-.countdown-wrap{display:inline-flex;align-items:stretch;gap:.6rem;margin-top:.2rem}
-.time-pill{background:var(--card-2);border:1px solid var(--border);border-radius:12px;min-width:clamp(68px,14vw,100px);padding:.5rem .6rem;display:grid;place-items:center}
-.time-pill span{font-weight:900;font-size:clamp(1.2rem,4vw,1.8rem);line-height:1}
-.time-pill label{font-size:.75rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.5px}
+.countdown-wrap{display:inline-flex;align-items:stretch;gap:.5rem;margin-top:.2rem}
+.time-pill{background:var(--card-2);border:1px solid var(--border);border-radius:12px;min-width:clamp(64px,14vw,96px);padding:.45rem .55rem;display:grid;place-items:center}
+.time-pill span{font-weight:900;font-size:clamp(1.1rem,4vw,1.6rem);line-height:1}
+.time-pill label{font-size:.72rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.5px}
 .sep{display:grid;place-items:center;opacity:.6;font-weight:900}
 
 /* ===== Sponsors ===== */
-.sponsors{padding:2.2rem 0;text-align:center}
-.section-title{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;margin-bottom:.3rem}
+.sponsors{padding:1.8rem 0;text-align:center}
+.section-title{font-size:clamp(1.4rem,3vw,2rem);font-weight:900;margin-bottom:.25rem}
 .section-title.centered{text-align:center}
-.section-subtitle{color:var(--text-alt);margin-bottom:1.2rem}
-.sponsors-grid{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center}
-.sponsor-btn{background:#d63a3a;color:#fff;padding:.7rem 1.3rem;border-radius:9999px;font-weight:800;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease;box-shadow:0 12px 30px rgba(214,58,58,.25)}
-.sponsor-btn:hover{transform:translateY(-2px) scale(1.02)}
+.section-subtitle{color:var(--text-alt);margin-bottom:1rem}
+.sponsors-grid{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:center}
+.sponsor-btn{background:#d63a3a;color:#fff;padding:.6rem 1.1rem;border-radius:9999px;font-weight:800;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease;box-shadow:0 12px 30px rgba(214,58,58,.22)}
+.sponsor-btn:hover{transform:translateY(-2px)}
 
-/* ===== Race Card ===== */
-.race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(1rem,2.2vw,1.4rem);border-radius:14px;box-shadow:var(--shadow);margin-bottom:3rem;border:1px solid var(--border)}
+/* ===== Leaderboard Card ===== */
+.race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(.9rem,2.2vw,1.3rem);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:2.4rem;border:1px solid var(--border)}
 .race-header{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
-.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:1.0rem 0 1.75rem} /* extra bottom spacing */
+.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.8rem .95rem;color:var(--text-alt);margin:.9rem 0 1.45rem}
+
+/* Subtle “stage” behind podium for visual balance */
+.podium-wrap{position:relative;padding:8px 8px 14px}
+.podium-wrap::before{
+  content:""; position:absolute; inset:-6px 0 -2px 0; z-index:0;
+  background:radial-gradient(60% 80% at 50% 10%, rgba(255,215,0,.08), transparent 70%);
+  filter:blur(12px);
+}
 
 /* ===== Podium (Top 3) ===== */
 .podium-olympic{
+  position:relative; z-index:1;
   display:grid;
   grid-template-columns:1fr minmax(260px,1.2fr) 1fr; /* 2nd | 1st | 3rd */
-  gap:clamp(.8rem,2.6vw,1.2rem);
+  gap:clamp(.7rem,2.4vw,1.1rem);
   align-items:end;
-  margin:0.75rem 0 1.6rem;
+  margin:.55rem 0 1.3rem;
 }
 
-/* Use CSS variables to combine base lift + hover lift */
+/* Base + hover motion using variables for consistent feel */
 .podium-seat{
   --lift: 0px;         /* base podium raise */
   --hover-lift: 0px;   /* extra motion on hover */
   position:relative;
   background:var(--card-2);
   border:1px solid var(--border);
-  border-radius:16px;
+  border-radius:var(--radius);
   box-shadow:var(--shadow);
-  padding:1.6rem .9rem 1.3rem;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:.25rem;
-  cursor: default;
+  padding:1.25rem .9rem 1.05rem; /* tighter on mobile feel */
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:.22rem; cursor: default;
   transform: translateY(calc(var(--lift) + var(--hover-lift)));
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
   overflow:visible;
 }
-.podium-seat:hover{
-  --hover-lift: -4px;                     /* gentle float */
-  box-shadow:0 12px 36px rgba(0,0,0,.55); /* soft glow, not a button */
-  filter: brightness(1.02);
-}
+.podium-seat:hover{ --hover-lift: -4px; box-shadow:0 12px 36px rgba(0,0,0,.55); filter: brightness(1.02); }
 
 .podium-seat .rank-badge{
   position:absolute; top:10px; left:10px;
@@ -103,52 +106,44 @@ a:hover{color:#a5bbff}
   display:grid; place-items:center; font-weight:900;
 }
 
-/* Medal container — centered emoji from JS */
 .podium-seat .crown{
-  width:100%;
-  min-height:1.2em;
-  font-size:clamp(2.2rem,5.5vw,3rem);
-  line-height:1;
-  margin-bottom:.15rem;
-  display:block;
-  text-align:center;
+  width:100%; min-height:1.15em; font-size:clamp(2rem,5vw,2.6rem);
+  line-height:1; margin-bottom:.06rem; display:block; text-align:center;
 }
 
-/* Base “podium” raise per place (via --lift) */
 .podium-seat.col-first{
-  --lift: -16px;
-  min-height:clamp(220px,28vw,260px);
+  --lift: -14px;
+  min-height:clamp(200px,26vw,240px);
   border-color:var(--gold);
-  box-shadow:0 0 32px #ffd70033,var(--shadow);
+  box-shadow:0 0 30px #ffd7002e,var(--shadow);
 }
 .podium-seat.col-second{
-  --lift: -6px;
-  min-height:clamp(170px,24vw,210px);
+  --lift: -5px;
+  min-height:clamp(160px,22vw,200px);
   border-color:var(--silver);
-  box-shadow:0 0 26px #c0c0c033,var(--shadow);
+  box-shadow:0 0 24px #c0c0c029,var(--shadow);
 }
 .podium-seat.col-third{
   --lift: 0px;
-  min-height:clamp(150px,22vw,196px);
+  min-height:clamp(146px,21vw,188px);
   border-color:var(--bronze);
-  box-shadow:0 0 22px #cd7f3233,var(--shadow);
+  box-shadow:0 0 20px #cd7f3226,var(--shadow);
 }
 
-/* Prominence of names + amounts */
-.podium-seat .user{font-weight:900;font-size:clamp(1.05rem,3.2vw,1.25rem);overflow-wrap:anywhere}
-.podium-seat .label{font-size:.73rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.4px;margin-top:.1rem}
-.podium-seat .wager{font-size:1.05rem;overflow-wrap:anywhere}
+/* Typography hierarchy inside cards */
+.podium-seat .user{font-weight:900;font-size:clamp(1rem,3vw,1.2rem);text-align:center;overflow-wrap:anywhere}
+.podium-seat .label{font-size:.72rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.45px;margin-top:.08rem}
+.podium-seat .wager{font-size:clamp(1.05rem,2.7vw,1.3rem);overflow-wrap:anywhere}
 .podium-seat .prize{font-weight:900;color:var(--accent)}
-.success-badge{display:none !important} /* hide old Champion/Runner-up/Third */
 
 /* ===== 4–10 row ===== */
 .others-inline{
   --others-count:7;
   display:grid;
   grid-template-columns:repeat(var(--others-count),1fr);
-  gap:.9rem;
-  overflow:visible;         /* was hidden: now the hover lift won't clip */
-  padding-top:.2rem;        /* small cushion so upward hover never cuts */
+  gap:.85rem;
+  overflow:visible;         /* prevent hover clipping */
+  padding-top:.25rem;       /* small cushion for upward hover */
 }
 .others-inline li{
   --hover-lift: 0px;
@@ -157,41 +152,38 @@ a:hover{color:#a5bbff}
   border:1px solid var(--border);
   border-radius:12px;
   box-shadow:var(--shadow);
-  padding:2.2rem .9rem 1rem;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:.25rem;
-  height:190px;
-  cursor: default;
+  padding:1.35rem .9rem .95rem;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:.22rem; height:176px; cursor: default;
   transform: translateY(var(--hover-lift));
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-  overflow:visible;          /* was hidden: allow the lift to exceed the box */
-  will-change: transform;    /* smoother hover on low-end devices */
+  overflow:visible; will-change: transform;
 }
-.others-inline li:hover{
-  --hover-lift: -3px;                          /* subtle movement */
-  box-shadow:0 10px 30px rgba(0,0,0,.5);
-  filter: brightness(1.015);
-}
+.others-inline li:hover{ --hover-lift: -3px; box-shadow:0 10px 30px rgba(0,0,0,.5); filter: brightness(1.015); }
 .others-inline .position{
   position:absolute; top:10px; left:10px; background:#000; color:#fff;
   border:2px solid #333; border-radius:999px; padding:.1rem .5rem; font-weight:900;
 }
 .others-inline .username{font-weight:900;overflow-wrap:anywhere}
-.others-inline .label.emphasized{font-size:.75rem;color:var(--accent);font-weight:900;text-transform:uppercase}
+.others-inline .label.emphasized{font-size:.74rem;color:var(--accent);font-weight:900;text-transform:uppercase}
 .others-inline .wager{color:var(--text-alt);overflow-wrap:anywhere}
 .others-inline .prize{font-weight:900;color:var(--accent)}
 
+/* ===== Value change shimmer (applied by JS when numbers update) ===== */
+.changed, .value-changed{animation:valueFlash .9s ease}
+@keyframes valueFlash{
+  0%{filter:brightness(1.6)}
+  100%{filter:brightness(1)}
+}
+
 /* ===== Footer ===== */
-.footer{background:#121212;border-top:1px solid var(--border);padding:2rem 0}
+.footer{background:#121212;border-top:1px solid var(--border);padding:1.5rem 0}
 .footer-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:1rem;align-items:start}
-.footer-brand{display:flex;gap:.8rem;align-items:center}
-.footer-logo{width:36px;height:36px}
+.footer-brand{display:flex;gap:.7rem;align-items:center}
+.footer-logo{width:34px;height:34px}
 .footer-brand h3{margin:0;font-weight:900}
 .footer-brand .muted{color:var(--text-alt);font-size:.9rem}
-.footer-links{display:grid;gap:.35rem;align-content:start}
+.footer-links{display:grid;gap:.3rem;align-content:start}
 .footer-links a{color:var(--text-alt);text-decoration:none;font-weight:700}
 .footer-links a:hover{color:var(--text)}
 .footer-meta{text-align:right;color:var(--text-alt);font-size:.95rem}
@@ -199,14 +191,19 @@ a:hover{color:#a5bbff}
 .footer-meta a:hover{text-decoration:underline}
 
 /* ===== Effects ===== */
-.fade-in{animation:fadeIn .4s ease}
+.fade-in{animation:fadeIn .35s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ===== Mobile ===== */
 @media (max-width:900px){
-  .podium-olympic{grid-template-columns:1fr}
+  /* Single-column podium; subtle scale differences keep 1st feeling special */
+  .podium-olympic{grid-template-columns:1fr;gap:.7rem}
+  .podium-seat{padding:1.05rem .85rem .85rem}
+  .podium-seat.col-first{transform:translateY(var(--hover-lift)) scale(1.01)}
+  .podium-seat.col-second{transform:translateY(calc(-3px + var(--hover-lift))) scale(.995)}
+  .podium-seat.col-third{transform:translateY(var(--hover-lift)) scale(.995)}
+  .others-inline{grid-template-columns:1fr;gap:.75rem}
+  .others-inline li{height:auto}
   .footer-grid{grid-template-columns:1fr;text-align:center}
   .footer-meta{text-align:center}
-  .others-inline{grid-template-columns:1fr;overflow:visible}
-  .others-inline li{height:auto}
 }

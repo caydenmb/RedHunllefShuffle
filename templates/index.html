@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>RedHunllef</title>
+  <title>Shuffle.com Wager Race – RedHunllef</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Live Shuffle.com wager race leaderboard with real-time updates." />
   <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
@@ -17,7 +17,7 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef logo" class="logo" />
         <h1 class="brand-title">RedHunllef</h1>
       </a>
-      <!-- Removed the "Watch on Kick" link by request -->
+      <!-- (Removed top-right “Watch on Kick” link by request) -->
     </div>
   </header>
 
@@ -52,14 +52,14 @@
   <!-- Sponsors -->
   <section class="sponsors container">
     <h2 class="section-title">Sponsors</h2>
-    <p class="section-subtitle">Thanks to our sponsors for supporting the streams!</p>
+    <p class="section-subtitle">Thanks to our partners for supporting the streams!</p>
     <div class="sponsors-grid">
       <a href="https://shuffle.com/?r=Red" class="sponsor-btn" target="_blank" rel="noopener">Shuffle.com</a>
       <a href="https://runestake.com/r/Red" class="sponsor-btn" target="_blank" rel="noopener">RuneStake.com</a>
     </div>
   </section>
 
-  <!-- Live race content -->
+  <!-- Leaderboard -->
   <section class="race container">
     <div class="race-inner">
       <div class="race-header">
@@ -67,11 +67,14 @@
       </div>
 
       <div class="helper-card">
-        <p><strong>Check out the wager placements below!</strong> — no refresh needed.</p>
+        <p><strong>Check out the wager placements below!</strong> Top 3 shine on the podium, with everyone else lined up below. It’s all live — no refresh needed.</p>
       </div>
 
-      <!-- Top 3 -->
-      <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
+      <!-- “Stage” behind the top 3 for visual balance -->
+      <div class="podium-wrap">
+        <!-- Top 3 -->
+        <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
+      </div>
 
       <!-- 4–10 -->
       <ul id="others-list" class="others-inline" aria-label="Ranks 4 to 10"></ul>
@@ -85,7 +88,7 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="" class="footer-logo" />
         <div>
           <h3>RedHunllef</h3>
-          <p class="muted">Live leaderboards & streams.</p>
+          <p class="muted">Shuffle.com Wager Race – Live leaderboard & stream.</p>
         </div>
       </div>
       <nav class="footer-links">
