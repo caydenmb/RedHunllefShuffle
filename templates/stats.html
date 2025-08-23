@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Site Stats – RedHunllef</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    /* Light wrapper styling reusing the site’s theme */
+    .stats-wrap{width:min(1100px,92%);margin:2rem auto}
+    .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0 1.25rem}
+    .kpi{background:#1b1b1b;border:1px solid #2a2a2a;border-radius:12px;padding:1rem;box-shadow:0 8px 28px rgba(0,0,0,.6);text-align:center}
+    .kpi .label{color:#b5b5b5;text-transform:uppercase;letter-spacing:.4px;font-size:.8rem}
+    .kpi .value{font-weight:900;font-size:1.6rem}
+    .charts{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .panel{background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:1rem;box-shadow:0 8px 28px rgba(0,0,0,.6)}
+    .panel h3{margin:0 0 .6rem;font-weight:900}
+    .svgbox{width:100%;height:220px;background:#101010;border-radius:10px;border:1px solid #252525}
+    .legend{display:flex;gap:.5rem;flex-wrap:wrap;color:#b5b5b5;font-size:.9rem;margin-top:.4rem}
+    .note{color:#b5b5b5;margin-top:1rem}
+    @media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.charts{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="brand"><img src="{{ url_for('static', filename='redlogo.png') }}" class="logo" alt=""><h1 class="brand-title">RedHunllef</h1></a>
+    </div>
+  </header>
+
+  <div class="stats-wrap">
+    <h2 class="section-title centered">Site Statistics</h2>
+    <p class="section-subtitle" style="text-align:center">All metrics are anonymized and aggregated.</p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Total Visits</div><div class="value" id="kpi-total">0</div></div>
+      <div class="kpi"><div class="label">Unique Visitors (30d)</div><div class="value" id="kpi-unique">0</div></div>
+      <div class="kpi"><div class="label">Online Now</div><div class="value" id="kpi-online">0</div></div>
+      <div class="kpi"><div class="label">Avg Session (sec)</div><div class="value" id="kpi-avg">0</div></div>
+      <div class="kpi"><div class="label">Updates Today</div><div class="value" id="kpi-updates">0</div></div>
+      <div class="kpi"><div class="label">API Health</div><div class="value" id="kpi-health">—</div></div>
+    </div>
+
+    <div class="charts">
+      <div class="panel">
+        <h3>Visits per Day (30d)</h3>
+        <svg id="visits-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+      </div>
+      <div class="panel">
+        <h3>Top Referrers</h3>
+        <svg id="refs-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+      </div>
+      <div class="panel">
+        <h3>Device Breakdown</h3>
+        <svg id="devices-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+        <div class="legend" id="devices-legend"></div>
+      </div>
+      <div class="panel">
+        <h3>Live/Offline (48h)</h3>
+        <svg id="timeline-svg" class="svgbox" viewBox="0 0 600 220"></svg>
+      </div>
+    </div>
+
+    <p class="note">Privacy: IPs are never stored; a daily rotating hash is used to estimate uniques. “Do Not Track” and the <code>?no_track=1</code> query opt out of analytics.</p>
+  </div>
+
+  <script src="{{ url_for('static', filename='stats.js') }}" defer></script>
+</body>
+</html>

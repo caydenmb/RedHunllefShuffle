@@ -5,13 +5,10 @@
   <title>RedHunllef</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Live Shuffle.com wager race leaderboard with real-time updates for RedHunllef." />
-
-  <!-- Open Graph / Social -->
   <meta property="og:title" content="Shuffle Wager Leaderboard – RedHunllef" />
   <meta property="og:description" content="Olympic-style podium for the top 3, live updates, and stream status." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="{{ url_for('static', filename='redlogo.png') }}" />
-
   <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
@@ -24,18 +21,14 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef logo" class="logo" />
         <h1 class="brand-title">RedHunllef</h1>
       </a>
-      <!-- (Removed top-right “Watch on Kick”) -->
     </div>
   </header>
 
   <!-- Hero -->
   <section class="hero">
     <div class="container hero-inner">
-      <h2 class="hero-heading">
-        RedHunllef: Gambling, Gaming, & Variety Streamer
-      </h2>
+      <h2 class="hero-heading">RedHunllef: Gambling, Gaming, & Variety Streamer</h2>
 
-      <!-- Live Status Badge -->
       <div id="liveStatus" class="live-status" role="status" aria-live="polite">
         <span class="dot" aria-hidden="true"></span>
         <span class="text">Checking…</span>
@@ -43,7 +36,6 @@
         <a class="live-cta" href="https://kick.com/redhunllef" target="_blank" rel="noopener">Open Kick</a>
       </div>
 
-      <!-- Countdown pills: DD : HH : MM : SS -->
       <div id="countdown" class="countdown-wrap" aria-live="polite">
         <div class="time-pill"><span id="dd">00</span><label>Days</label></div>
         <div class="sep" aria-hidden="true">:</div>
@@ -77,16 +69,12 @@
         <p><strong>Check out the wager placements below!</strong> — no refresh needed.</p>
       </div>
 
-      <!-- status line for data fetch errors/empties -->
       <div id="data-status" class="data-status" aria-live="polite" hidden></div>
 
-      <!-- “Stage” behind the top 3 for visual balance -->
       <div class="podium-wrap">
-        <!-- Top 3 -->
         <div id="podium" class="podium-olympic" aria-label="Top 3 leaderboard"></div>
       </div>
 
-      <!-- 4–10 -->
       <ul id="others-list" class="others-inline" aria-label="Ranks 4 to 10"></ul>
     </div>
   </section>

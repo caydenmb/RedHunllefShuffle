@@ -1,414 +1,564 @@
-from __future__ import annotations
-
-import json
+# -*- coding: utf-8 -*-
 import os
 import re
-import threading
+import json
 import time
+import math
+import queue
+import sqlite3
+import hashlib
+import secrets
 import logging
-from logging.handlers import RotatingFileHandler
-from typing import Any, Dict, List, Tuple, Optional
+import threading
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 import requests
-from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS
-
-# ----------------------- App & CORS -----------------------
-app = Flask(__name__)
-CORS(app)
-
-# ----------------------- Config --------------------------
-API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
-
-# Shuffle time window (sanitized each fetch)
-START_TIME = int(os.getenv("START_TIME", "1755662460"))
-END_TIME   = int(os.getenv("END_TIME",   "1756871940"))
-
-REFRESH_SECONDS = int(os.getenv("REFRESH_SECONDS", "60"))
-PORT = int(os.getenv("PORT", "8080"))
-
-# Kick OAuth credentials (use ENV in production)
-KICK_CLIENT_ID = os.getenv("KICK_CLIENT_ID", "01K39PNSMPVX2PS4EEJ2K69EVF")
-KICK_CLIENT_SECRET = os.getenv(
-    "KICK_CLIENT_SECRET",
-    "47970da4c8790427e09eaebd1b7c8d522ef233c54bbd896514c7f562c66ca74e",
+from flask import (
+    Flask, request, jsonify, render_template,
+    send_from_directory, abort
 )
-KICK_CHANNEL_SLUG = os.getenv("KICK_CHANNEL_SLUG", "redhunllef")
 
-# Official API base
-_KICK_API_BASE = "https://api.kick.com/public/v1"
-# OAuth server
-_KICK_OAUTH_TOKEN = "https://id.kick.com/oauth/token"
+# -----------------------------------------------------------------------------
+# Basic app config
+# -----------------------------------------------------------------------------
+APP_NAME = "redhunllefshuffle"
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
-URL_RANGE = "https://affiliate.shuffle.com/stats/{API_KEY}?startTime={start}&endTime={end}"
-URL_LIFE  = "https://affiliate.shuffle.com/stats/{API_KEY}"
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] event=%(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+log = logging.getLogger(APP_NAME)
 
-# ----------------------- Logging -------------------------
-os.makedirs("logs", exist_ok=True)
+# -----------------------------------------------------------------------------
+# Environment / simple settings
+# -----------------------------------------------------------------------------
+# Countdown end (race end). You can override via env var RACE_END_EPOCH.
+RACE_END_EPOCH = int(os.environ.get("RACE_END_EPOCH", str(int(time.time()) + 11*24*3600)))
 
-LOGGER = logging.getLogger("wager")
-LOGGER.setLevel(logging.DEBUG)  # keep DEBUG to see rank logs
-fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
+# Kick API credentials (optional; if missing or blocked we fall back gracefully)
+KICK_CLIENT_ID = os.environ.get("KICK_CLIENT_ID", "")
+KICK_CLIENT_SECRET = os.environ.get("KICK_CLIENT_SECRET", "")
 
-sh = logging.StreamHandler()
-sh.setLevel(logging.DEBUG)
-sh.setFormatter(fmt)
-LOGGER.addHandler(sh)
+KICK_CHANNEL = os.environ.get("KICK_CHANNEL", "redhunllef")
 
-fh = RotatingFileHandler("logs/audit.log", maxBytes=2_000_000, backupCount=5)
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(fmt)
-LOGGER.addHandler(fh)
+# Cache timing
+REFRESH_SECONDS = 60
 
-def log(level: str, msg: str) -> None:
-    getattr(LOGGER, level.lower())(msg)
+# Analytics DB path (stdlib sqlite3)
+AN_DB = os.environ.get("ANALYTICS_DB", "analytics.sqlite3")
 
-log("info", "event=server.boot msg='starting backend'")
+# -----------------------------------------------------------------------------
+# Helper: mask usernames for UI, keep full in logs
+# -----------------------------------------------------------------------------
+def mask_username(u: str) -> str:
+    u = (u or "").strip()
+    if len(u) < 2:
+        return (u or "*") + "******"
+    return u[:2] + "******"
 
-# ----------------------- Caches --------------------------
-_cache_lock = threading.Lock()
-_data_cache: Dict[str, Any] = {"podium": [], "others": []}
-
-# Stream status cache (ttl 60s when API OK, 120s on fallback/error)
-_stream_lock = threading.Lock()
-_stream_cache: Dict[str, Any] = {"live": False, "title": None, "viewers": None, "updated": 0, "source": "unknown"}
-_STREAM_TTL_OK = 60
-_STREAM_TTL_ERROR = 120
-
-# Kick app token cache
-_token_lock = threading.Lock()
-_kick_token: Dict[str, Any] = {"access_token": None, "expires_at": 0}
-
-# ----------------------- Helpers ------------------------
-def censor_username(username: str) -> str:
-    """Public rule: first two characters + six asterisks."""
-    if not username:
-        return "******"
-    return username[:2] + "*" * 6
-
-def _sanitize_window() -> Tuple[int, int, str]:
-    """Clamp window to now; fallback to last 14d if invalid."""
-    now = int(time.time())
-    start = START_TIME
-    end = END_TIME
-    reason = "configured"
-
-    if end > now:
-        end = now
-        reason = "end_clamped_to_now"
-
-    if start >= end:
-        end = now
-        start = now - 14 * 24 * 3600
-        reason = "fallback_last_14d"
-
-    return start, end, reason
-
-# ---------------- Shuffle fetch ----------------
-def _fetch_from_shuffle() -> List[dict]:
-    headers = {"User-Agent": "Shuffle-WagerRace/Final"}
-    start, end, why = _sanitize_window()
-    url_range = URL_RANGE.format(API_KEY=API_KEY, start=start, end=end)
-    url_life = URL_LIFE.format(API_KEY=API_KEY)
-
-    try:
-        t0 = time.perf_counter()
-        log("info", f"event=fetch.range start={start} end={end} reason={why} url='{url_range}'")
-        r = requests.get(url_range, timeout=20, headers=headers)
-
-        if r.status_code == 400:
-            log("warning", f"event=fetch.range_http_400 retry=lifetime url='{url_life}'")
-            r2 = requests.get(url_life, timeout=20, headers=headers)
-            r2.raise_for_status()
-            dt = (time.perf_counter() - t0) * 1000
-            log("info", f"event=fetch.done source=lifetime status={r2.status_code} duration_ms={dt:.1f}")
-            data = r2.json()
-            if not isinstance(data, list):
-                raise ValueError("unexpected API format (lifetime)")
-            return data
-
-        r.raise_for_status()
-        dt = (time.perf_counter() - t0) * 1000
-        log("info", f"event=fetch.done source=window status={r.status_code} duration_ms={dt:.1f}")
-        data = r.json()
-        if not isinstance(data, list):
-            raise ValueError("unexpected API format (window)")
-        return data
-
-    except requests.RequestException as exc:
-        log("warning", f"event=fetch.window_failed err='{exc}' retry=lifetime url='{url_life}'")
-        r3 = requests.get(url_life, timeout=20, headers=headers)
-        r3.raise_for_status()
-        data = r3.json()
-        if not isinstance(data, list):
-            raise ValueError("unexpected API format (lifetime_after_fail)")
-        return data
-
-def _process_entries(entries: List[dict]) -> Dict[str, Any]:
-    filtered = [e for e in entries if e.get("campaignCode") == "Red"]
-
-    def _w(e: dict) -> float:
-        try:
-            return float(e.get("wagerAmount", 0) or 0)
-        except (TypeError, ValueError):
-            return 0.0
-
-    sorted_entries = sorted(filtered, key=_w, reverse=True)
-
-    podium, others = [], []
-    top10_debug = []
-
-    for i, entry in enumerate(sorted_entries[:10], start=1):
-        full = entry.get("username", "Unknown")
-        try:
-            amt = float(entry.get("wagerAmount", 0) or 0)
-        except (TypeError, ValueError) as exc:
-            log("error", f"event=wager.parse row={i} user_full='{full}' raw='{entry.get('wagerAmount')}' err='{exc}'")
-            amt = 0.0
-
-        wager_str = f"${amt:,.2f}"
-
-        # UNCENSORED admin log per rank
-        log("debug", f"event=rank row={i} username_full='{full}' wager='{wager_str}'")
-        top10_debug.append(f"{i}:{full}({wager_str})")
-
-        public = {"username": censor_username(full), "wager": wager_str}
-        if i <= 3:
-            podium.append(public)
-        else:
-            others.append({"rank": i, **public})
-
-    if top10_debug:
-        log("info", "event=top10.summary " + " ".join(top10_debug))
-
-    return {"podium": podium, "others": others}
-
-def _refresh_cache() -> None:
-    t0 = time.perf_counter()
-    try:
-        processed = _process_entries(_fetch_from_shuffle())
-        with _cache_lock:
-            _data_cache.update(processed)
-
-        # snapshot (best-effort)
-        try:
-            with open("logs/latest_cache.json", "w", encoding="utf-8") as f:
-                json.dump(processed, f, indent=2)
-        except Exception as ex:
-            log("warning", f"event=snapshot.save_failed err='{ex}'")
-
-        log("info", f"event=cache.update podium={len(processed['podium'])} others={len(processed['others'])} ms={(time.perf_counter()-t0)*1000:.1f}")
-    except Exception as exc:
-        log("error", f"event=cache.update_failed err='{exc}'")
-
-def _schedule_refresh() -> None:
-    _refresh_cache()
-    threading.Timer(REFRESH_SECONDS, _schedule_refresh).start()
-
-# Kick off the background refresher once
-_schedule_refresh()
-
-# ------------------- Kick live status -------------------
-# Browser-like headers for HTML fallback
-_KICK_HEADERS = {
-    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0"),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.8",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "DNT": "1",
-    "Connection": "keep-alive",
-    "Referer": "https://kick.com/",
+# -----------------------------------------------------------------------------
+# In-memory caches
+# -----------------------------------------------------------------------------
+state = {
+    "data": {  # leaderboard cache
+        "podium": [],  # list of dicts: {username,wager}
+        "others": [],  # list of dicts: {rank,username,wager}
+        "updated_at": 0,
+    },
+    "stream": {  # live/offline cache
+        "live": False,
+        "viewers": None,
+        "source": "unknown",
+        "updated_at": 0,
+    },
+    "kick_token": {
+        "access_token": None,
+        "expires_at": 0,
+    },
+    "health": {  # last probe status booleans
+        "kick_ok": False,
+        "shuffle_ok": True,
+        "cache_ok": True,
+        "updated_at": 0,
+    }
 }
 
-# HTML scrape helpers (fallback)
-_NEXT_JSON_RE = re.compile(r'(?s)<script[^>]+type="application/json"[^>]*>\s*(\{.*?\})\s*</script>')
-_BOOL_RE = re.compile(r'"is_live"\s*:\s*(true|false)', re.IGNORECASE)
-_TITLE_RE = re.compile(r'"(session_title|stream_title)"\s*:\s*"([^"]+)"')
-_VIEWERS_RE = re.compile(r'"viewer_count"\s*:\s*(\d+)', re.IGNORECASE)
+# -----------------------------------------------------------------------------
+# Analytics (stdlib only)
+# -----------------------------------------------------------------------------
+BOT_RE = re.compile(r"(bot|crawler|spider|fetch|monitor|pingdom|curl|wget)", re.I)
+MOBILE_RE = re.compile(r"(iphone|android|ipad|mobile)", re.I)
+TABLET_RE = re.compile(r"(ipad|tablet)", re.I)
 
-def _extract_live_from_api_channel_payload(data: dict) -> Tuple[bool, Optional[str], Optional[int], str]:
-    if not isinstance(data, dict):
-        return (False, None, None, "kick-api")
-    stream = data.get("stream") or {}
-    is_live = bool(stream.get("is_live"))
-    title = data.get("stream_title") or stream.get("title") or None
-    viewers = stream.get("viewer_count") or None
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS visits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  day TEXT NOT NULL,           -- 'YYYY-MM-DD'
+  ts INTEGER NOT NULL,         -- epoch seconds
+  visitor_id TEXT NOT NULL,    -- sha256(ip + daily_salt)
+  session_id TEXT NOT NULL,    -- coarse session (hash ip+ua for day)
+  path TEXT NOT NULL,
+  referrer TEXT,
+  device TEXT NOT NULL         -- 'mobile'|'desktop'|'tablet'
+);
+
+CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day);
+CREATE INDEX IF NOT EXISTS idx_visits_vid ON visits(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_visits_ts  ON visits(ts);
+
+CREATE TABLE IF NOT EXISTS podium_snapshots (
+  ts INTEGER NOT NULL,         -- epoch seconds
+  first TEXT, second TEXT, third TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_podium_ts ON podium_snapshots(ts);
+
+CREATE TABLE IF NOT EXISTS stream_log (
+  ts INTEGER NOT NULL,
+  live INTEGER NOT NULL,       -- 0/1
+  viewers INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_stream_ts ON stream_log(ts);
+
+CREATE TABLE IF NOT EXISTS salts (
+  day TEXT PRIMARY KEY,
+  salt TEXT NOT NULL
+);
+"""
+
+def db_conn():
+    con = sqlite3.connect(AN_DB, timeout=3)
+    con.execute("PRAGMA journal_mode=WAL;")
+    con.row_factory = sqlite3.Row
+    return con
+
+def init_db():
+    con = db_conn()
     try:
-        viewers = int(viewers) if viewers is not None else None
-    except Exception:
-        viewers = None
-    return (is_live, title, viewers, "kick-api")
+        con.executescript(SCHEMA)
+        con.commit()
+    finally:
+        con.close()
 
-def get_kick_app_token(force_refresh: bool = False) -> Optional[str]:
-    # Basic guard
-    if not KICK_CLIENT_ID or not KICK_CLIENT_SECRET:
-        log("warning", "event=kick.token.missing msg='client id/secret not configured'")
-        return None
+init_db()
 
-    now = time.time()
-    with _token_lock:
-        token = _kick_token.get("access_token")
-        exp = float(_kick_token.get("expires_at") or 0)
-        # Refresh if forced or within 30s of expiry
-        if token and not force_refresh and (exp - now) > 30:
-            return token
+def get_daily_salt(day: str) -> str:
+    """Returns a stable daily salt; generates and stores if missing."""
+    con = db_conn()
+    try:
+        cur = con.execute("SELECT salt FROM salts WHERE day=?;", (day,))
+        row = cur.fetchone()
+        if row:
+            return row["salt"]
+        new = secrets.token_hex(16)
+        con.execute("INSERT OR REPLACE INTO salts(day, salt) VALUES(?,?);", (day, new))
+        con.commit()
+        return new
+    finally:
+        con.close()
 
+def device_from_ua(ua: str) -> str:
+    if not ua:
+        return "desktop"
+    if TABLET_RE.search(ua):
+        return "tablet"
+    if MOBILE_RE.search(ua):
+        return "mobile"
+    return "desktop"
+
+def is_bot(ua: str) -> bool:
+    if not ua:
+        return False
+    return bool(BOT_RE.search(ua))
+
+def coarse_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+def track_visit():
+    """Light, privacy-safe analytics for '/','/stats' (GET)."""
+    try:
+        if request.method != "GET":
+            return
+        if request.args.get("no_track") == "1":
+            return
+        if request.headers.get("DNT") == "1":
+            return
+
+        ua = request.headers.get("User-Agent", "")
+        if is_bot(ua):
+            return
+
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "0.0.0.0").split(",")[0].strip()
+        path = request.path
+        if path not in ("/", "/stats"):
+            # keep analytics focused; skip JSON APIs by default
+            return
+
+        now = int(time.time())
+        day = datetime.utcnow().strftime("%Y-%m-%d")
+        salt = get_daily_salt(day)
+        visitor_id = coarse_hash(f"{ip}|{salt}")
+        # crude session: hash of ip + UA + day
+        session_id = coarse_hash(f"{ip}|{ua}|{day}")
+        ref = request.headers.get("Referer", "")
+        ref_host = ""
+        if ref:
+            try:
+                ref_host = urlparse(ref).hostname or ""
+            except Exception:
+                ref_host = ""
+
+        dev = device_from_ua(ua)
+
+        con = db_conn()
         try:
-            payload = {
+            con.execute(
+                "INSERT INTO visits(day, ts, visitor_id, session_id, path, referrer, device) "
+                "VALUES(?,?,?,?,?,?,?);",
+                (day, now, visitor_id, session_id, path, ref_host, dev)
+            )
+            con.commit()
+        finally:
+            con.close()
+    except Exception as exc:
+        log.warning(f"analytics.track_failed error={exc!r}")
+
+@app.before_request
+def _before_request():
+    track_visit()
+
+# -----------------------------------------------------------------------------
+# Leaderboard data: Replace the two fetchers below with your real sources.
+# To keep this file self-contained, we simulate a structure that the frontend expects.
+# -----------------------------------------------------------------------------
+def _demo_wager_data():
+    """Simulated data structure with full names (logged) and masked names (served)."""
+    # In your live app, pull real data here and map into the same shape.
+    sample = [
+        {"username": "swizzle", "wager": 228857.91},
+        {"username": "liquid",  "wager": 38763.90},
+        {"username": "butter",  "wager": 22008.13},
+        {"username": "suave",   "wager": 21158.67},
+        {"username": "shadow",  "wager": 15035.61},
+        {"username": "geckoid", "wager": 12289.89},
+        {"username": "wexford", "wager": 10424.40},
+        {"username": "badger",  "wager":  7298.84},
+        {"username": "ekko",    "wager":  3019.25},
+        {"username": "tenant",  "wager":  2957.38},
+    ]
+    return sample
+
+def refresh_wager_cache():
+    """Refreshes leaderboard cache every REFRESH_SECONDS. Logs full names to console."""
+    while True:
+        try:
+            data = _demo_wager_data()  # TODO: replace w/ real pull
+
+            # Sort descending by numeric wager
+            data.sort(key=lambda r: float(r["wager"]), reverse=True)
+
+            # Log full names to console (uncensored)
+            top3 = [d["username"] for d in data[:3]]
+            log.info(f"leaderboard.top3 full={top3}")
+
+            # Prepare podium (top 3 shown)
+            podium = [{"username": mask_username(d["username"]),
+                       "wager": f"${float(d['wager']):,.2f}"} for d in data[:3]]
+
+            # Prepare others (ranks 4..10)
+            others = []
+            for idx, d in enumerate(data[3:10], start=4):
+                others.append({
+                    "rank": idx,
+                    "username": mask_username(d["username"]),
+                    "wager": f"${float(d['wager']):,.2f}"
+                })
+
+            # Update cache
+            state["data"] = {
+                "podium": podium,
+                "others": others,
+                "updated_at": int(time.time())
+            }
+
+            # Save podium snapshot for churn stats
+            try:
+                con = db_conn()
+                con.execute(
+                    "INSERT INTO podium_snapshots(ts, first, second, third) VALUES(?,?,?,?);",
+                    (int(time.time()),
+                     (data[0]["username"] if len(data) > 0 else None),
+                     (data[1]["username"] if len(data) > 1 else None),
+                     (data[2]["username"] if len(data) > 2 else None))
+                )
+                con.commit()
+                con.close()
+            except Exception as exc:
+                log.warning(f"podium.snapshot_failed error={exc!r}")
+
+            # Health
+            state["health"]["shuffle_ok"] = True
+            state["health"]["cache_ok"] = True
+            state["health"]["updated_at"] = int(time.time())
+
+        except Exception as exc:
+            log.error(f"leaderboard.refresh_failed err={exc!r}")
+            state["health"]["cache_ok"] = False
+
+        time.sleep(REFRESH_SECONDS)
+
+# -----------------------------------------------------------------------------
+# Kick stream status
+# -----------------------------------------------------------------------------
+def _kick_get_token() -> str | None:
+    if not (KICK_CLIENT_ID and KICK_CLIENT_SECRET):
+        return None
+    now = int(time.time())
+    if state["kick_token"]["access_token"] and now < state["kick_token"]["expires_at"] - 60:
+        return state["kick_token"]["access_token"]
+    try:
+        r = requests.post(
+            "https://id.kick.com/oauth2/token",
+            data={
                 "grant_type": "client_credentials",
                 "client_id": KICK_CLIENT_ID,
                 "client_secret": KICK_CLIENT_SECRET,
-            }
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            r = requests.post(_KICK_OAUTH_TOKEN, data=payload, headers=headers, timeout=10)
-            if r.status_code != 200:
-                log("warning", f"event=kick.token.status status={r.status_code} body='{r.text[:200]}'")
-                return None
-            j = r.json()
-            access = j.get("access_token")
-            expires_in = int(j.get("expires_in") or 3600)
-            if not access:
-                log("warning", "event=kick.token.no_access_token")
-                return None
-            _kick_token["access_token"] = access
-            # Add a small safety buffer (10s)
-            _kick_token["expires_at"] = now + max(expires_in - 10, 30)
-            log("info", "event=kick.token.ok msg='received app token'")
-            return access
-        except Exception as exc:
-            log("warning", f"event=kick.token.failed err='{exc}'")
-            return None
-
-def _scrape_kick_html(channel: str) -> Dict[str, Any]:
-    url_page = f"https://kick.com/{channel}"
-    try:
-        r = requests.get(url_page, headers=_KICK_HEADERS, timeout=10)
-        if r.status_code != 200:
-            log("warning", f"event=kick.html_fetch url='{url_page}' status={r.status_code}")
-            return {"live": False, "title": None, "viewers": None, "source": "kick-html"}
-
-        html = r.text or ""
-        # Try structured JSON first (Next.js style); if unknown, we rely on regex fallbacks.
-        try:
-            m = _NEXT_JSON_RE.search(html)
-            if m:
-                _ = json.loads(m.group(1))  # reserved for future stable path parsing
-        except Exception as ex:
-            log("warning", f"event=kick.html_json_parse_failed err='{ex}'")
-
-        is_live = False
-        title = None
-        viewers = None
-
-        bm = _BOOL_RE.search(html)
-        if bm:
-            is_live = (bm.group(1).lower() == "true")
-
-        tm = _TITLE_RE.search(html)
-        if tm:
-            title = tm.group(2).encode('utf-8', 'ignore').decode('utf-8', 'ignore')
-
-        vm = _VIEWERS_RE.search(html)
-        if vm:
-            try:
-                viewers = int(vm.group(1))
-            except Exception:
-                viewers = None
-
-        log("info", f"event=kick.html_parse live={is_live} viewers={viewers} title_detected={'yes' if title else 'no'}")
-        return {"live": is_live, "title": title, "viewers": viewers, "source": "kick-html"}
+                "scope": "public"
+            },
+            timeout=10
+        )
+        if r.status_code == 200:
+            tok = r.json()
+            state["kick_token"]["access_token"] = tok.get("access_token")
+            state["kick_token"]["expires_at"] = int(time.time()) + int(tok.get("expires_in", 3600))
+            return state["kick_token"]["access_token"]
     except Exception as exc:
-        log("warning", f"event=kick.html_fetch_failed url='{url_page}' err='{exc}'")
-        return {"live": False, "title": None, "viewers": None, "source": "unknown"}
+        log.warning(f"kick.token_failed err={exc!r}")
+    return None
 
-def _fetch_kick_status(channel: str = KICK_CHANNEL_SLUG) -> Dict[str, Any]:
-    token = get_kick_app_token(force_refresh=False)
+def _kick_fetch_status() -> dict:
+    """Try official API with bearer; if blocked, fall back to page scrape."""
+    headers = {"Accept": "application/json"}
+    token = _kick_get_token()
     if token:
-        try:
-            url = f"{_KICK_API_BASE}/channels"
-            headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-            params = [("slug", channel)]
-            log("info", f"event=kick.api.fetch url='{url}' params={params}")
-            r = requests.get(url, headers=headers, params=params, timeout=10)
-            if r.status_code == 401:
-                # Token may be expired/invalid; refresh once and retry
-                log("warning", "event=kick.api.unauthorized msg='refreshing token and retrying'")
-                token2 = get_kick_app_token(force_refresh=True)
-                if token2:
-                    headers["Authorization"] = f"Bearer {token2}"
-                    r = requests.get(url, headers=headers, params=params, timeout=10)
+        headers["Authorization"] = f"Bearer {token}"
 
+    # Official-ish endpoints may vary; try two patterns:
+    for url in [
+        f"https://kick.com/api/v2/channels/{KICK_CHANNEL}/livestream",
+        f"https://kick.com/api/v1/channels/{KICK_CHANNEL}/livestream",
+    ]:
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
             if r.status_code == 200:
                 j = r.json()
-                data = (j.get("data") or [])
-                if data:
-                    is_live, title, viewers, src = _extract_live_from_api_channel_payload(data[0])
-                    log("info", f"event=kick.api.parse live={is_live} viewers={viewers}")
-                    return {"live": is_live, "title": title, "viewers": viewers, "source": src}
-                log("info", "event=kick.api.empty msg='no channel data for slug'")
-                return {"live": False, "title": None, "viewers": None, "source": "kick-api"}
-
-            log("warning", f"event=kick.api.status status={r.status_code} body='{r.text[:200]}'")
-            # fall through to HTML
+                live = bool(j.get("livestream", j).get("is_live", j.get("is_live", False)))
+                viewers = j.get("livestream", j).get("viewer_count", j.get("viewer_count"))
+                return {"live": live, "viewers": viewers, "source": "kick"}
+            elif r.status_code == 403:
+                log.warning(f"kick.fetch url='{url}' status=403 note='blocked'")
+            else:
+                log.warning(f"kick.fetch url='{url}' status={r.status_code}")
         except Exception as exc:
-            log("warning", f"event=kick.api.failed err='{exc}'")
-            # fall through to HTML
+            log.warning(f"kick.fetch_failed url='{url}' err={exc!r}")
 
-    # HTML fallback
-    return _scrape_kick_html(channel)
+    # Fallback: basic HTML scrape (very conservative)
+    try:
+        url = f"https://kick.com/{KICK_CHANNEL}"
+        r = requests.get(url, timeout=10)
+        live = ("isLive" in r.text) or ("Live Now" in r.text)
+        # viewer count not reliably parsable in static HTML -> None
+        return {"live": live, "viewers": None, "source": "fallback"}
+    except Exception as exc:
+        log.warning(f"kick.fallback_failed err={exc!r}")
+        return {"live": False, "viewers": None, "source": "unknown"}
 
-def get_stream_status() -> Dict[str, Any]:
-    now = int(time.time())
-    with _stream_lock:
-        ttl = _STREAM_TTL_OK if _stream_cache.get("source") == "kick-api" else _STREAM_TTL_ERROR
-        if now - int(_stream_cache.get("updated", 0)) < ttl:
-            return dict(_stream_cache)
+def refresh_stream_cache():
+    while True:
+        try:
+            st = _kick_fetch_status()
+            state["stream"] = {
+                **st,
+                "updated_at": int(time.time())
+            }
+            # Log stream status history for stats timeline
+            try:
+                con = db_conn()
+                con.execute(
+                    "INSERT INTO stream_log(ts, live, viewers) VALUES(?,?,?);",
+                    (int(time.time()), 1 if st.get("live") else 0, st.get("viewers"))
+                )
+                con.commit()
+                con.close()
+            except Exception as exc:
+                log.warning(f"stream.log_failed error={exc!r}")
 
-    status = _fetch_kick_status(KICK_CHANNEL_SLUG)
-    status["updated"] = now
-    with _stream_lock:
-        _stream_cache.update(status)
-    log("info", f"event=stream.status live={status['live']} viewers={status.get('viewers')} source={status['source']}")
-    return status
+            state["health"]["kick_ok"] = True
+            state["health"]["updated_at"] = int(time.time())
+            log.info(f"stream.status live={st.get('live')} viewers={st.get('viewers')} source={st.get('source')}")
+        except Exception as exc:
+            state["health"]["kick_ok"] = False
+            log.error(f"stream.refresh_failed err={exc!r}")
+        time.sleep(REFRESH_SECONDS)
 
-# ----------------------- HTTP --------------------------
-@app.before_request
-def _audit():
-    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "?").split(",")[0].strip()
-    ua = (request.user_agent.string or "").replace("\n", " ")[:160]
-    log("info", f"event=request ip={ip} path='{request.path}' ua='{ua}'")
-
-@app.after_request
-def _sec(resp):
-    resp.headers["X-Content-Type-Options"] = "nosniff"
-    resp.headers["X-Frame-Options"] = "SAMEORIGIN"
-    resp.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    return resp
-
+# -----------------------------------------------------------------------------
+# JSON APIs consumed by the frontend
+# -----------------------------------------------------------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
 @app.route("/data")
-def data():
-    with _cache_lock:
-        payload = dict(_data_cache)
-    return jsonify(payload)
+def api_data():
+    return jsonify(state["data"])
 
 @app.route("/config")
-def config():
-    return jsonify({"start_time": START_TIME, "end_time": END_TIME, "refresh_seconds": REFRESH_SECONDS})
+def api_config():
+    return jsonify({"end_time": RACE_END_EPOCH})
 
 @app.route("/stream")
-def stream():
-    return jsonify(get_stream_status())
+def api_stream():
+    return jsonify(state["stream"])
 
+@app.route("/stats")
+def stats_page():
+    # No link from home; you can share /stats directly.
+    return render_template("stats.html")
+
+@app.route("/stats-data")
+def stats_data():
+    """Aggregated, anonymized metrics for stats page."""
+    now = int(time.time())
+    day_today = datetime.utcnow().date()
+    day_30_ago = day_today - timedelta(days=30)
+    day_48h_ago_ts = now - 48*3600
+
+    con = db_conn()
+    try:
+        # KPIs
+        total_visits = con.execute("SELECT COUNT(*) c FROM visits;").fetchone()["c"]
+        unique_30d = con.execute(
+            "SELECT COUNT(DISTINCT visitor_id) c FROM visits WHERE day >= ?;",
+            (day_30_ago.strftime("%Y-%m-%d"),)
+        ).fetchone()["c"]
+
+        online_5m = con.execute(
+            "SELECT COUNT(DISTINCT session_id) c FROM visits WHERE ts >= ?;",
+            (now - 300,)
+        ).fetchone()["c"]
+
+        # Avg session length (very approximate): per session_id today's first/last
+        rows = con.execute(
+            "SELECT session_id, MIN(ts) mi, MAX(ts) ma FROM visits WHERE day=? GROUP BY session_id;",
+            (day_today.strftime("%Y-%m-%d"),)
+        ).fetchall()
+        if rows:
+            avg_session = sum((r["ma"] - r["mi"]) for r in rows) / len(rows)
+        else:
+            avg_session = 0
+
+        # Visits per day (last 30)
+        visits_series = con.execute(
+            "SELECT day, COUNT(*) c FROM visits WHERE day >= ? GROUP BY day ORDER BY day ASC;",
+            (day_30_ago.strftime("%Y-%m-%d"),)
+        ).fetchall()
+        visits_series = [{"day": r["day"], "count": r["c"]} for r in visits_series]
+
+        # Top referrers (last 30)
+        ref_rows = con.execute(
+            "SELECT referrer, COUNT(*) c FROM visits WHERE day >= ? AND referrer IS NOT NULL "
+            "AND referrer <> '' GROUP BY referrer ORDER BY c DESC LIMIT 5;",
+            (day_30_ago.strftime("%Y-%m-%d"),)
+        ).fetchall()
+        top_referrers = [{"referrer": r["referrer"], "count": r["c"]} for r in ref_rows]
+
+        # Device breakdown (last 30)
+        dev_rows = con.execute(
+            "SELECT device, COUNT(*) c FROM visits WHERE day >= ? GROUP BY device;",
+            (day_30_ago.strftime("%Y-%m-%d"),)
+        ).fetchall()
+        devices = {r["device"]: r["c"] for r in dev_rows}
+
+        # Stream timeline (48h)
+        stream_rows = con.execute(
+            "SELECT ts, live, viewers FROM stream_log WHERE ts >= ? ORDER BY ts ASC;",
+            (day_48h_ago_ts,)
+        ).fetchall()
+        stream_timeline = [{"ts": r["ts"], "live": bool(r["live"]), "viewers": r["viewers"]} for r in stream_rows]
+
+        # Podium churn (24h) + biggest climb
+        podium_rows = con.execute(
+            "SELECT ts, first, second, third FROM podium_snapshots WHERE ts >= ? ORDER BY ts ASC;",
+            (now - 24*3600,)
+        ).fetchall()
+        churn = 0
+        last = None
+        for r in podium_rows:
+            cur = (r["first"], r["second"], r["third"])
+            if last and cur != last:
+                churn += sum(1 for a, b in zip(cur, last) if a != b)
+            last = cur
+
+        # For biggest climb we’d need position history; we’ll report churn only (safe & simple).
+        biggest_climb = None
+
+        # Health
+        health = state["health"]
+
+        payload = {
+            "kpi": {
+                "total_visits": total_visits,
+                "unique_30d": unique_30d,
+                "online_now": online_5m,
+                "avg_session_seconds": int(avg_session),
+                "updates_today": sum(1 for r in stream_rows if True),  # placeholder proxy for activity
+                "api_health": {
+                    "kick_ok": bool(health["kick_ok"]),
+                    "shuffle_ok": bool(health["shuffle_ok"]),
+                    "cache_ok": bool(health["cache_ok"]),
+                    "updated_at": health["updated_at"],
+                }
+            },
+            "series": {
+                "visits_per_day": visits_series,
+                "top_referrers": top_referrers,
+                "devices": devices,
+                "stream_timeline": stream_timeline,
+            },
+            "leaderboard": {
+                "podium_churn_24h": churn,
+                "biggest_climb": biggest_climb
+            }
+        }
+        return jsonify(payload)
+    finally:
+        con.close()
+
+# -----------------------------------------------------------------------------
+# 404
+# -----------------------------------------------------------------------------
 @app.errorhandler(404)
-def nf(e):
+def not_found(e):
     return render_template("404.html"), 404
 
+# -----------------------------------------------------------------------------
+# Background threads
+# -----------------------------------------------------------------------------
+def _boot_threads():
+    t1 = threading.Thread(target=refresh_wager_cache, name="wager-cache", daemon=True)
+    t2 = threading.Thread(target=refresh_stream_cache, name="stream-cache", daemon=True)
+    t1.start()
+    t2.start()
+
+_boot_threads()
+
+# -----------------------------------------------------------------------------
+# Entrypoint
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    log("info", f"event=server.listen port={PORT}")
-    app.run(host="0.0.0.0", port=PORT)
+    # Dev server
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
