@@ -23,8 +23,6 @@ a:hover{color:#a5bbff}
 @keyframes logo-bounce{0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}60%{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.logo{animation:none}}
 .brand-title{font-size:clamp(1.05rem,2.2vw,1.25rem);font-weight:900;letter-spacing:.2px}
-.utility .utility-link{color:var(--text-alt);text-decoration:none;font-weight:700}
-.utility .utility-link:hover{color:var(--text)}
 
 /* ===== Hero ===== */
 .hero{background:radial-gradient(1000px 500px at 20% -10%,#242424 10%,transparent 60%),linear-gradient(135deg,#111,#171717);padding:clamp(2.4rem,4.5vw,3.5rem) 0 clamp(1.6rem,3vw,2.5rem);text-align:center;border-bottom:1px solid var(--border)}
@@ -61,16 +59,15 @@ a:hover{color:#a5bbff}
 /* ===== Race Card ===== */
 .race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(1rem,2.2vw,1.4rem);border-radius:14px;box-shadow:var(--shadow);margin-bottom:3rem;border:1px solid var(--border)}
 .race-header{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
-.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:1.0rem 0 1.75rem} /* ↑ increased bottom margin for breathing room */
+.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:1.0rem 0 1.75rem} /* extra bottom spacing */
 
 /* ===== Podium (Top 3) ===== */
-/* Grid ensures middle column is wider so 1st sits visually center and raised */
 .podium-olympic{
   display:grid;
   grid-template-columns:1fr minmax(260px,1.2fr) 1fr; /* 2nd | 1st | 3rd */
   gap:clamp(.8rem,2.6vw,1.2rem);
   align-items:end;
-  margin:0.75rem 0 1.6rem; /* ↑ a bit more space above/below */
+  margin:0.75rem 0 1.6rem;
 }
 
 /* Use CSS variables to combine base lift + hover lift */
@@ -150,7 +147,8 @@ a:hover{color:#a5bbff}
   display:grid;
   grid-template-columns:repeat(var(--others-count),1fr);
   gap:.9rem;
-  overflow:hidden;
+  overflow:visible;         /* was hidden: now the hover lift won't clip */
+  padding-top:.2rem;        /* small cushion so upward hover never cuts */
 }
 .others-inline li{
   --hover-lift: 0px;
@@ -169,7 +167,8 @@ a:hover{color:#a5bbff}
   cursor: default;
   transform: translateY(var(--hover-lift));
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-  overflow:hidden;
+  overflow:visible;          /* was hidden: allow the lift to exceed the box */
+  will-change: transform;    /* smoother hover on low-end devices */
 }
 .others-inline li:hover{
   --hover-lift: -3px;                          /* subtle movement */
