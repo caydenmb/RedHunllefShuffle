@@ -61,15 +61,16 @@ a:hover{color:#a5bbff}
 /* ===== Race Card ===== */
 .race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(1rem,2.2vw,1.4rem);border-radius:14px;box-shadow:var(--shadow);margin-bottom:3rem;border:1px solid var(--border)}
 .race-header{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
-.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:.9rem 0 1.1rem}
+.helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;color:var(--text-alt);margin:1.0rem 0 1.75rem} /* ↑ increased bottom margin for breathing room */
 
 /* ===== Podium (Top 3) ===== */
+/* Grid ensures middle column is wider so 1st sits visually center and raised */
 .podium-olympic{
   display:grid;
-  grid-template-columns:1fr minmax(260px,1.2fr) 1fr;
+  grid-template-columns:1fr minmax(260px,1.2fr) 1fr; /* 2nd | 1st | 3rd */
   gap:clamp(.8rem,2.6vw,1.2rem);
   align-items:end;
-  margin:1rem 0 1.4rem;
+  margin:0.75rem 0 1.6rem; /* ↑ a bit more space above/below */
 }
 
 /* Use CSS variables to combine base lift + hover lift */
@@ -87,7 +88,7 @@ a:hover{color:#a5bbff}
   align-items:center;
   justify-content:center;
   gap:.25rem;
-  cursor: default;     /* looks non-clickable */
+  cursor: default;
   transform: translateY(calc(var(--lift) + var(--hover-lift)));
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
   overflow:visible;
@@ -116,7 +117,7 @@ a:hover{color:#a5bbff}
   text-align:center;
 }
 
-/* Base “podium” raise per place (now via --lift) */
+/* Base “podium” raise per place (via --lift) */
 .podium-seat.col-first{
   --lift: -16px;
   min-height:clamp(220px,28vw,260px);
