@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Shuffle.com Wager Race – RedHunllef</title>
+  <title>RedHunllef</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="RedHunllef" />
+  <meta name="description" content="Live Shuffle.com wager race leaderboard with real-time updates for RedHunllef." />
+
+  <!-- Open Graph / Social -->
+  <meta property="og:title" content="Shuffle Wager Leaderboard – RedHunllef" />
+  <meta property="og:description" content="Olympic-style podium for the top 3, live updates, and stream status." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="{{ url_for('static', filename='redlogo.png') }}" />
+
   <link rel="icon" href="{{ url_for('static', filename='redlogo.ico') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
@@ -17,7 +24,7 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef logo" class="logo" />
         <h1 class="brand-title">RedHunllef</h1>
       </a>
-      <!-- (Removed top-right “Watch on Kick” link by request) -->
+      <!-- (Removed top-right “Watch on Kick”) -->
     </div>
   </header>
 
@@ -30,7 +37,7 @@
 
       <!-- Live Status Badge -->
       <div id="liveStatus" class="live-status" role="status" aria-live="polite">
-        <span class="dot"></span>
+        <span class="dot" aria-hidden="true"></span>
         <span class="text">Checking…</span>
         <span class="viewer-chip" style="display:none"></span>
         <a class="live-cta" href="https://kick.com/redhunllef" target="_blank" rel="noopener">Open Kick</a>
@@ -39,11 +46,11 @@
       <!-- Countdown pills: DD : HH : MM : SS -->
       <div id="countdown" class="countdown-wrap" aria-live="polite">
         <div class="time-pill"><span id="dd">00</span><label>Days</label></div>
-        <div class="sep">:</div>
+        <div class="sep" aria-hidden="true">:</div>
         <div class="time-pill"><span id="hh">00</span><label>Hours</label></div>
-        <div class="sep">:</div>
+        <div class="sep" aria-hidden="true">:</div>
         <div class="time-pill"><span id="mm">00</span><label>Minutes</label></div>
-        <div class="sep">:</div>
+        <div class="sep" aria-hidden="true">:</div>
         <div class="time-pill"><span id="ss">00</span><label>Seconds</label></div>
       </div>
     </div>
@@ -69,6 +76,9 @@
       <div class="helper-card">
         <p><strong>Check out the wager placements below!</strong> — no refresh needed.</p>
       </div>
+
+      <!-- status line for data fetch errors/empties -->
+      <div id="data-status" class="data-status" aria-live="polite" hidden></div>
 
       <!-- “Stage” behind the top 3 for visual balance -->
       <div class="podium-wrap">

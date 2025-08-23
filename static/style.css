@@ -29,7 +29,7 @@ a:hover{color:#a5bbff}
 .hero{background:radial-gradient(1000px 500px at 20% -10%,#242424 10%,transparent 60%),linear-gradient(135deg,#111,#171717);padding:clamp(2.1rem,4.5vw,3.3rem) 0 clamp(1.2rem,3vw,2.1rem);text-align:center;border-bottom:1px solid var(--border)}
 .hero-heading{font-size:clamp(1.5rem,4.4vw,2.1rem);font-weight:900;letter-spacing:-.01em;margin-bottom:.7rem}
 
-/* Live status badge – refined + glowing ring when live */
+/* Live status badge */
 .live-status{display:inline-flex;align-items:center;gap:.6rem;margin:.25rem 0 1.1rem;background:var(--card-2);border:1px solid var(--border);border-radius:999px;padding:.45rem .75rem .45rem .55rem;box-shadow:var(--shadow)}
 .live-status .dot{width:.65rem;height:.65rem;border-radius:999px;background:#999;animation:none}
 .live-status.live  .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
@@ -62,6 +62,7 @@ a:hover{color:#a5bbff}
 .race-inner{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),var(--card);padding:clamp(.9rem,2.2vw,1.3rem);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:2.4rem;border:1px solid var(--border)}
 .race-header{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
 .helper-card{background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:.8rem .95rem;color:var(--text-alt);margin:.9rem 0 1.45rem}
+.data-status{background:#1b1b1b;border:1px dashed #2a2a2a;color:#c9c9c9;border-radius:10px;padding:.7rem .9rem;margin:.2rem 0 1rem}
 
 /* Subtle “stage” behind podium for visual balance */
 .podium-wrap{position:relative;padding:8px 8px 14px}
@@ -83,14 +84,13 @@ a:hover{color:#a5bbff}
 
 /* Base + hover motion using variables for consistent feel */
 .podium-seat{
-  --lift: 0px;         /* base podium raise */
-  --hover-lift: 0px;   /* extra motion on hover */
+  --lift: 0px; --hover-lift: 0px;
   position:relative;
   background:var(--card-2);
   border:1px solid var(--border);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
-  padding:1.25rem .9rem 1.05rem; /* tighter on mobile feel */
+  padding:1.25rem .9rem 1.05rem;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:.22rem; cursor: default;
   transform: translateY(calc(var(--lift) + var(--hover-lift)));
@@ -142,8 +142,8 @@ a:hover{color:#a5bbff}
   display:grid;
   grid-template-columns:repeat(var(--others-count),1fr);
   gap:.85rem;
-  overflow:visible;         /* prevent hover clipping */
-  padding-top:.25rem;       /* small cushion for upward hover */
+  overflow:visible;
+  padding-top:.25rem;
 }
 .others-inline li{
   --hover-lift: 0px;
@@ -165,16 +165,15 @@ a:hover{color:#a5bbff}
   border:2px solid #333; border-radius:999px; padding:.1rem .5rem; font-weight:900;
 }
 .others-inline .username{font-weight:900;overflow-wrap:anywhere}
-.others-inline .label.emphasized{font-size:.74rem;color:var(--accent);font-weight:900;text-transform:uppercase}
+.others-inline .label.emphasized{font-size:.74rem;color:var(--text-alt);font-weight:900;text-transform:uppercase} /* neutralized to match top 3 */
 .others-inline .wager{color:var(--text-alt);overflow-wrap:anywhere}
-.others-inline .prize{font-weight:900;color:var(--accent)}
+.others-inline .prize{font-weight:900;color:var(--accent)} /* green prize for ALL */
 
-/* ===== Value change shimmer (applied by JS when numbers update) ===== */
-.changed, .value-changed{animation:valueFlash .9s ease}
-@keyframes valueFlash{
-  0%{filter:brightness(1.6)}
-  100%{filter:brightness(1)}
-}
+/* Value change & placement-change animations */
+.value-changed{animation:valueFlash .9s ease}
+@keyframes valueFlash{0%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+.place-change{animation:placeSwap .28s ease}
+@keyframes placeSwap{0%{transform:translateY(-6px)}100%{transform:translateY(0)}}
 
 /* ===== Footer ===== */
 .footer{background:#121212;border-top:1px solid var(--border);padding:1.5rem 0}
@@ -196,7 +195,6 @@ a:hover{color:#a5bbff}
 
 /* ===== Mobile ===== */
 @media (max-width:900px){
-  /* Single-column podium; subtle scale differences keep 1st feeling special */
   .podium-olympic{grid-template-columns:1fr;gap:.7rem}
   .podium-seat{padding:1.05rem .85rem .85rem}
   .podium-seat.col-first{transform:translateY(var(--hover-lift)) scale(1.01)}
