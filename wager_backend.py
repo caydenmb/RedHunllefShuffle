@@ -94,8 +94,8 @@ CORS(app)
 
 API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
 
-START_TIME = int(os.getenv("START_TIME", "1756872060"))
-END_TIME   = int(os.getenv("END_TIME",   "1758081540"))
+START_TIME = int(os.getenv("START_TIME", "1756856460"))
+END_TIME   = int(os.getenv("END_TIME",   "1759371540"))
 
 REFRESH_SECONDS = int(os.getenv("REFRESH_SECONDS", "60"))
 PORT = int(os.getenv("PORT", "8080"))
@@ -484,4 +484,5 @@ if __name__ == "__main__":
     log.star(f"Background refreshers run every {REFRESH_SECONDS}s")
     log.ok(f"Server listening on 0.0.0.0:{PORT}")
     app.run(host="0.0.0.0", port=PORT)
+
 
