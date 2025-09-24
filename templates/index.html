@@ -17,7 +17,7 @@
         <img src="{{ url_for('static', filename='redlogo.png') }}" alt="RedHunllef logo" class="logo" />
         <h1 class="brand-title">RedHunllef</h1>
       </a>
-      <!-- Removed the "Watch on Kick" link by request -->
+      <!-- (intentionally no "Watch on Kick" link) -->
     </div>
   </header>
 
@@ -27,6 +27,13 @@
       <h2 class="hero-heading">
         RedHunllef: Gambling, Gaming, & Variety Streamer
       </h2>
+
+      <!-- Festive birthday banner (accessible, subtle glow) -->
+      <div class="birthday-banner" role="status" aria-live="polite">
+        <span class="spark" aria-hidden="true">🎈</span>
+        <span class="msg">Happy Birthday <strong>RedHunllef</strong>!</span>
+        <span class="spark" aria-hidden="true">🎂🎉🎁</span>
+      </div>
 
       <!-- Live Status Badge -->
       <div id="liveStatus" class="live-status" role="status" aria-live="polite">
@@ -106,44 +113,44 @@
   <!-- Your existing app logic -->
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 
-  <!-- Tiny, isolated birthday script: adds a few floating emoji without touching your logic -->
+  <!-- Enhanced birthday script: more + bigger emojis, layered depth, still lightweight -->
   <script>
     (function() {
       const root = document.querySelector('.birthday-overlay');
       if (!root) return;
 
-      // Respect prefers-reduced-motion automatically via CSS (overlay hidden),
-      // but also guard here to avoid work entirely.
       const mediaOK = window.matchMedia && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (!mediaOK) return;
 
-      const EMOJI = ['🎂','🎁','🎉','🎈','🥳'];
-      const COUNT = 10;           // keep it light
-      const MIN_DUR = 12;         // seconds
-      const MAX_DUR = 22;
+      // Expanded festive set (rotates through; safe characters)
+      const EMOJI = ['🎂','🎁','🎉','🎈','🥳','🍰','🧁','✨','🌟','🍾','💫','🍬','🍭'];
+      const COUNT = 28;            // more confetti without overbearing
+      const MIN_DUR = 12;          // seconds
+      const MAX_DUR = 24;
       const MIN_DELAY = 0;
-      const MAX_DELAY = 14;
+      const MAX_DELAY = 16;
 
-      // Create a small pool of floating emojis with randomized timings/positions
+      // Distribute layers to create subtle depth (blur + opacity handled in CSS)
+      const layers = ['layer-1','layer-2','layer-3'];
+
       for (let i = 0; i < COUNT; i++) {
         const span = document.createElement('span');
-        span.className = 'b-emoji';
+        span.className = 'b-emoji ' + layers[i % layers.length];
         span.textContent = EMOJI[i % EMOJI.length];
 
-        // Randomize horizontal start position (vw), duration, and initial delay
-        const left = Math.random() * 100;                   // 0–100 vw
+        // Randomize horizontal start, duration, delay, and a tiny scale tweak
+        const left = Math.random() * 100; // vw
         const duration = (Math.random() * (MAX_DUR - MIN_DUR) + MIN_DUR).toFixed(2);
         const delay = (Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY).toFixed(2);
+        const scale = (0.9 + Math.random() * 0.4).toFixed(2); // 0.9–1.3
 
         span.style.left = left + 'vw';
         span.style.animationDuration = duration + 's';
         span.style.animationDelay = delay + 's';
+        span.style.transform = `scale(${scale})`;
 
         root.appendChild(span);
       }
-
-      // Keep the footer year behavior as-is if your script.js handles it.
-      // We don't touch your existing JS—this snippet is purely additive.
     })();
   </script>
 </body>
