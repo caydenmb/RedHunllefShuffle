@@ -100,6 +100,51 @@
     </div>
   </footer>
 
+  <!-- Birthday Overlay (non-blocking, decorative only) -->
+  <div class="birthday-overlay" aria-hidden="true"></div>
+
+  <!-- Your existing app logic -->
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+
+  <!-- Tiny, isolated birthday script: adds a few floating emoji without touching your logic -->
+  <script>
+    (function() {
+      const root = document.querySelector('.birthday-overlay');
+      if (!root) return;
+
+      // Respect prefers-reduced-motion automatically via CSS (overlay hidden),
+      // but also guard here to avoid work entirely.
+      const mediaOK = window.matchMedia && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!mediaOK) return;
+
+      const EMOJI = ['🎂','🎁','🎉','🎈','🥳'];
+      const COUNT = 10;           // keep it light
+      const MIN_DUR = 12;         // seconds
+      const MAX_DUR = 22;
+      const MIN_DELAY = 0;
+      const MAX_DELAY = 14;
+
+      // Create a small pool of floating emojis with randomized timings/positions
+      for (let i = 0; i < COUNT; i++) {
+        const span = document.createElement('span');
+        span.className = 'b-emoji';
+        span.textContent = EMOJI[i % EMOJI.length];
+
+        // Randomize horizontal start position (vw), duration, and initial delay
+        const left = Math.random() * 100;                   // 0–100 vw
+        const duration = (Math.random() * (MAX_DUR - MIN_DUR) + MIN_DUR).toFixed(2);
+        const delay = (Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY).toFixed(2);
+
+        span.style.left = left + 'vw';
+        span.style.animationDuration = duration + 's';
+        span.style.animationDelay = delay + 's';
+
+        root.appendChild(span);
+      }
+
+      // Keep the footer year behavior as-is if your script.js handles it.
+      // We don't touch your existing JS—this snippet is purely additive.
+    })();
+  </script>
 </body>
 </html>

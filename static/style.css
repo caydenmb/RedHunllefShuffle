@@ -210,3 +210,57 @@ a:hover{color:#a5bbff}
   .others-inline{grid-template-columns:1fr;overflow:visible}
   .others-inline li{height:auto}
 }
+
+/* ========== Birthday Theme (non-intrusive) ========== */
+
+/* Tiny party hat on the existing .logo (no markup changes) */
+.logo{
+  position:relative;
+}
+.logo::after{
+  content:"🎉";
+  position:absolute;
+  top:-10px;
+  right:-10px;
+  font-size:clamp(16px,2.2vw,20px);
+  transform:rotate(18deg);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.5));
+  pointer-events:none;
+}
+
+/* Floating birthday emoji overlay */
+.birthday-overlay{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:999; /* above content, below modals if you add later */
+  overflow:hidden;
+}
+
+/* Each emoji */
+.b-emoji{
+  position:absolute;
+  bottom:-40px; /* start slightly off-screen */
+  font-size:clamp(16px,3vw,22px);
+  opacity:.0;
+  animation:floatUp linear infinite;
+  will-change: transform, opacity;
+}
+
+/* Gentle float up & fade-in/out */
+@keyframes floatUp{
+  0%{ transform:translate(var(--x, 0), 10px) rotate(0deg); opacity:0; }
+  10%{ opacity:.5; }
+  50%{ opacity:.6; }
+  100%{ transform:translate(var(--x, 0), -110vh) rotate(1turn); opacity:0; }
+}
+
+/* Slight drift left/right via per-item variable */
+.b-emoji:nth-child(odd){ --x: -12px; }
+.b-emoji:nth-child(even){ --x: 12px; }
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion:reduce){
+  .birthday-overlay{ display:none; }
+  .logo::after{ display:inline; transform:none; }
+}
