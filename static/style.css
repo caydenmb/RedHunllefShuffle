@@ -1,35 +1,40 @@
-/* ===== Tokens / Theme ==================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
 
 :root{
   /* Surfaces */
-  --bg:#0f0f0f;           /* page background */
-  --surface:#121212;      /* cards / elevated blocks */
-  --surface-2:#171717;    /* secondary cards */
-  --hair:#242424;         /* subtle borders / dividers */
+  --bg:#0e0e0f;           /* page background (very dark neutral) */
+  --surface:#141416;      /* cards / elevated surfaces */
+  --surface-2:#1a1b1d;    /* secondary cards / chips */
+  --hair:#26272a;         /* thin borders */
 
   /* Text */
-  --text:#f2f2f2;         /* primary text */
-  --muted:#b8b8b8;        /* secondary text */
+  --text:#f2f2f3;         /* primary */
+  --muted:#b7b9be;        /* secondary */
 
-  /* Accent */
-  --accent:#52ff33;       /* brand accent (green) */
-  --ring: color-mix(in oklab, var(--accent) 32%, transparent);
+  /* Accent (green family, matches brand) */
+  --accent:#52ff33;
+  --accent-ink:#121413;   /* readable text when on accent */
+  --ring: color-mix(in oklab, var(--accent) 36%, transparent);
 
-  /* Elevation */
-  --shadow-sm:0 2px 10px rgba(0,0,0,.35);
-  --shadow:0 10px 30px rgba(0,0,0,.45);
-  --shadow-lg:0 18px 50px rgba(0,0,0,.55);
+  /* Depth */
+  --shadow-xs:0 1px 4px rgba(0,0,0,.35);
+  --shadow-sm:0 6px 18px rgba(0,0,0,.35);
+  --shadow:   0 14px 42px rgba(0,0,0,.45);
+  --shadow-lg:0 22px 66px rgba(0,0,0,.55);
 
-  /* Sizing / rhythm */
+  /* Radii & layout */
   --radius:14px;
   --radius-lg:18px;
-  --container: 1200px;
+  --radius-pill:999px;
+  --container:1200px;
 
-  /* Easing / timing */
-  --ease: cubic-bezier(.2,.8,.2,1);
-  --fast: .14s var(--ease);
-  --normal: .18s var(--ease);
+  /* Timing / easing */
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --fast:.14s var(--ease);
+  --normal:.22s var(--ease);
+
+  /* Podium medals */
+  --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32;
 }
 
 /* ===== Reset & Base ====================================================== */
@@ -39,24 +44,25 @@ body{
   background:var(--bg);
   color:var(--text);
   font:16px/1.6 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
 img{max-width:100%;height:auto;display:block}
 .container{width:min(var(--container),92%);margin-inline:auto}
 
-/* Links: no “baby blue”; use brand accent with subtle underline on hover */
-a{color:var(--accent);text-decoration:none;font-weight:700;transition:filter var(--fast), text-decoration-color var(--fast)}
-a:hover{filter:brightness(1.05);text-decoration:underline}
+/* Links — remove "baby blue", use accent with elegant underline */
+a{color:var(--accent);text-decoration:none;font-weight:800;transition:filter var(--fast), text-decoration-color var(--fast)}
+a:hover{filter:brightness(1.06);text-decoration:underline}
 a:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring);border-radius:8px}
 
-/* Text selection aligns with brand */
-::selection{background:color-mix(in oklab, var(--accent) 30%, transparent);color:var(--text)}
+/* Selection — align highlight to brand accent */
+::selection{background:color-mix(in oklab, var(--accent) 32%, transparent);color:var(--text)}
 
-/* ===== Header (sticky) =================================================== */
+/* ===== Header (sticky, translucent) ===================================== */
 .site-header{
   position:sticky;top:0;z-index:1000;
-  backdrop-filter: blur(8px);
-  background: rgba(18,18,18,.72);
+  background:rgba(20,21,23,.72);
+  backdrop-filter:blur(8px);
   border-bottom:1px solid var(--hair);
 }
 .header-row{
@@ -67,11 +73,11 @@ a:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring);border-radius:8px}
 .brand{display:flex;align-items:center;gap:12px;color:var(--text)}
 .brand-logo{
   width:44px;height:44px;transform-origin:bottom center;
-  /* DOUBLE SPEED (was ~3.2s originally; now 1.6s) */
-  animation: bounce 1.6s ease-in-out infinite;
+  /* DOUBLE SPEED from ~3.2s to 1.6s — subtle and premium */
+  animation:logo-bounce 1.6s ease-in-out infinite;
 }
 .brand-name{font-weight:900;letter-spacing:.2px;font-size:1.1rem}
-@keyframes bounce{
+@keyframes logo-bounce{
   0%,20%,50%,80%,100% { transform:translateY(0) }
   40% { transform:translateY(-6px) }
   60% { transform:translateY(-3px) }
@@ -79,207 +85,208 @@ a:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring);border-radius:8px}
 @media (prefers-reduced-motion:reduce){.brand-logo{animation:none}}
 
 /* Primary nav */
-.primary-nav .nav-list{display:flex;gap:20px;list-style:none}
-.primary-nav a{color:var(--muted);font-weight:800}
+.primary-nav .nav-list{display:flex;gap:22px;list-style:none}
+.primary-nav a{color:var(--muted);font-weight:900}
 .primary-nav a:hover{color:var(--text)}
 
-/* ===== Hero (centered) =================================================== */
+/* ===== Hero (centered, premium) ========================================= */
 .hero{
   border-bottom:1px solid var(--hair);
   background:
-    radial-gradient(1000px 520px at 50% -20%, #1f1f1f 10%, transparent 60%),
-    linear-gradient(180deg, #101010, #0f0f0f 60%);
+    radial-gradient(1200px 600px at 50% -20%, #1d1f23 10%, transparent 60%),
+    linear-gradient(180deg,#0f1012,#0e0e0f);
 }
 .hero-wrap{
-  /* CENTER the stack and give breathing space */
-  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2rem, 6vw, 4rem);
+  /* Center stack with generous breathing room — AAA/FAANG feel */
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.2rem, 6vw, 4.2rem);
   text-align:center;
   max-width: 900px;
 }
 .hero-title{
   font-weight:900; letter-spacing:-.01em;
-  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-size: clamp(2.1rem, 4.8vw, 3.2rem);
 }
 .hero-subtitle{
   color:var(--muted);
-  margin-top: .8rem;
+  margin-top:.75rem;
   font-size: clamp(1rem, 2.2vw, 1.125rem);
 }
 
-/* Live status chip */
+/* Live status chip (script.js toggles state classes) */
 .live-status{
-  margin: 1.4rem auto 0; display:inline-flex; align-items:center; gap:.6rem;
-  background:var(--surface-2); border:1px solid var(--hair); border-radius:999px;
-  padding:.5rem .75rem; box-shadow: var(--shadow-sm);
+  margin:1.5rem auto 0; display:inline-flex; align-items:center; gap:.7rem;
+  background:linear-gradient(180deg,#1b1d20,#17191c);
+  border:1px solid var(--hair); border-radius:var(--radius-pill);
+  padding:.55rem .8rem; box-shadow:var(--shadow-xs);
 }
-.live-status .dot{width:.65rem;height:.65rem;border-radius:50%;background:#888}
-.live-status.live .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation: pulse 1.4s infinite ease-in-out}
-.live-status.off .dot{background:#666}
+.live-status .dot{width:.68rem;height:.68rem;border-radius:50%;background:#8a8d93}
+.live-status.live .dot{background:#ff4747;box-shadow:0 0 12px #ff4747aa;animation:pulse 1.4s infinite ease-in-out}
+.live-status.off .dot{background:#65686e}
 .live-status .text{font-weight:900}
 .viewer-chip{
   display:none;align-items:center;gap:.35rem;background:#202b20;color:#d9ffd5;border:1px solid #2f4e2f;
-  border-radius:999px;padding:.25rem .6rem;font-weight:800;font-size:.85rem
+  border-radius:var(--radius-pill);padding:.25rem .6rem;font-weight:800;font-size:.85rem
 }
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 
-/* Generic buttons (for CTAs & sponsors) */
+/* Buttons ================================================================ */
 .btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
-  border-radius:999px; padding:.55rem 1.0rem; font-weight:900; text-decoration:none;
+  position:relative; display:inline-flex; align-items:center; justify-content:center; gap:.55rem;
+  border-radius:var(--radius-pill); padding:.6rem 1.05rem; font-weight:900; text-decoration:none;
   transition: transform var(--fast), filter var(--fast), box-shadow var(--fast);
-  border: 1px solid transparent;
+  border:1px solid transparent; will-change:transform;
 }
-.btn-accent{ background: var(--accent); color:#111; box-shadow: var(--shadow-sm) }
-.btn-accent:hover{ filter: brightness(1.03); transform: translateY(-2px) }
-.btn-accent:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring), var(--shadow) }
 
-.btn-quiet{
-  /* Neutral/“Apple-like” quiet button that still feels clickable */
-  background: linear-gradient(180deg, #1d1d1d, #181818);
-  color: var(--text);
-  border: 1px solid var(--hair);
+/* Luminous primary CTA (hero) */
+.btn-accent{
+  color:var(--accent-ink);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--accent) 88%, #ffffff 12%), var(--accent));
+  box-shadow: 0 10px 30px rgba(82,255,51,.28), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.btn-accent:hover{ transform: translateY(-2px) scale(1.02); filter: brightness(1.03) }
+.btn-accent:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring), 0 12px 36px rgba(82,255,51,.34) }
+
+/* Glassy sponsor buttons — bright, not dark; subtle inner glow  */
+.btn-glass{
+  /* Translucent glass with soft border and luminous highlight */
+  color:var(--text);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.012)),
+    linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+  border:1px solid rgba(255,255,255,.12);
   box-shadow: var(--shadow-sm);
+  overflow:hidden; /* allow glow element to sit under text */
 }
-.btn-quiet:hover{ transform: translateY(-2px); filter: brightness(1.02) }
-.btn-quiet:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring), var(--shadow) }
+.btn-glass .btn-label{ position:relative; z-index:1; }
+.btn-glass .btn-glow{
+  /* radial glow element that brightens on hover/focus — GPU cheap */
+  content:""; position:absolute; inset:-40% -10% auto -10%;
+  height:220%; border-radius:50%;
+  background: radial-gradient(120px 60px at 35% 20%, color-mix(in oklab, var(--accent) 70%, #ffffff 30%), transparent 55%);
+  filter: blur(18px); opacity:.25; transform: translate3d(0,0,0);
+  transition: opacity var(--normal), transform var(--normal);
+  z-index:0;
+}
+.btn-glass:hover{ transform: translateY(-2px) scale(1.02) }
+.btn-glass:hover .btn-glow{ opacity:.45; transform: translate3d(0,-4px,0) }
+.btn-glass:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring), var(--shadow) }
 
-/* Countdown */
+/* Countdown =============================================================== */
 .countdown{
-  margin: 1.0rem auto 0;
-  display: inline-flex; align-items: stretch; gap:.6rem;
+  margin:1.15rem auto 0; display:inline-flex; align-items:stretch; gap:.6rem;
 }
 .countdown .pill{
-  background: var(--surface-2); border:1px solid var(--hair); border-radius:12px;
-  min-width: 92px; padding:.55rem .7rem; display:grid; place-items:center;
+  background:var(--surface-2); border:1px solid var(--hair); border-radius:12px;
+  min-width:96px; padding:.55rem .7rem; display:grid; place-items:center;
 }
-.countdown .pill > span{ font-weight:900; font-size: clamp(1.2rem, 4vw, 1.8rem); line-height:1 }
-.countdown .pill > label{ font-size:.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:.45px }
+.countdown .pill > span{ font-weight:900; font-size: clamp(1.25rem, 4vw, 1.85rem); line-height:1 }
+.countdown .pill > label{ font-size:.74rem; color:var(--muted); text-transform:uppercase; letter-spacing:.46px }
 .countdown .colon{ display:grid; place-items:center; opacity:.6; font-weight:900 }
 
-/* ===== Generic section wrapper ========================================== */
-.section{ padding: clamp(2.2rem, 5.5vw, 3.2rem) 0 }
-.section-title{
-  font-weight:900; font-size: clamp(1.5rem, 3vw, 2rem);
-  text-align:center;
-}
-.section-lead{ text-align:center; color:var(--muted); margin:.4rem auto 1.2rem; max-width:680px }
+/* Sections ================================================================ */
+.section{ padding: clamp(2.2rem, 5.6vw, 3.2rem) 0 }
+.section-title{ font-weight:900; font-size:clamp(1.6rem,3vw,2.2rem); text-align:center }
+.section-lead{ text-align:center; color:var(--muted); margin:.45rem auto 1.2rem; max-width:680px }
 
-/* ===== Sponsors ========================================================== */
-.sponsor-grid{
-  margin-top:.6rem;
-  display:flex; gap:.8rem; flex-wrap:wrap; justify-content:center;
-}
-
-/* ===== Leaderboard Card ================================================== */
+/* Leaderboard Card ======================================================== */
 .card{
-  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--surface);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,0)),
+    var(--surface);
   border:1px solid var(--hair);
-  border-radius: var(--radius-lg);
+  border-radius:var(--radius-lg);
+  padding:clamp(1rem,2.1vw,1.6rem);
   box-shadow: var(--shadow);
-  padding: clamp(1rem, 2vw, 1.5rem);
 }
-.card-head{
-  text-align:center; margin-bottom: 1.2rem;
-}
+.card-head{ text-align:center; margin-bottom:1.2rem }
 .card-head .muted{ color:var(--muted); margin-top:.25rem }
 
-/* Podium (Top 3) */
+/* Podium (Top 3) ========================================================== */
 .podium{
   display:grid;
   grid-template-columns: 1fr minmax(260px,1.2fr) 1fr; /* 2nd | 1st | 3rd */
   gap: clamp(.8rem, 2.2vw, 1.2rem);
-  align-items: end;
-  margin: .8rem 0 1.2rem;
+  align-items:end;
+  margin:.8rem 0 1.2rem;
 }
 .podium-seat{
   --lift:0px; --hover:0px;
-  position:relative;
-  background: var(--surface-2);
-  border:1px solid var(--hair);
-  border-radius: 16px;
+  position:relative; background:var(--surface-2);
+  border:1px solid var(--hair); border-radius:16px;
   box-shadow: var(--shadow-sm);
-  padding: 1.4rem .9rem 1.1rem;
-  display:flex; flex-direction:column; align-items:center; gap:.25rem;
-  transform: translateY(calc(var(--lift) + var(--hover)));
+  padding:1.5rem .95rem 1.2rem;
+  display:flex; flex-direction:column; align-items:center; gap:.3rem;
+  transform:translateY(calc(var(--lift) + var(--hover)));
   transition: transform var(--fast), box-shadow var(--fast), filter var(--fast);
 }
-.podium-seat:hover{ --hover:-4px; filter:brightness(1.02); box-shadow: var(--shadow) }
+.podium-seat:hover{ --hover:-4px; filter:brightness(1.02); box-shadow:var(--shadow) }
 .podium-seat .rank-badge{
-  position:absolute; top:10px; left:10px;
+  position:absolute; top:10px; left:10px; width:2rem; height:2rem;
   background:#000; color:#fff; border:2px solid #333; border-radius:999px;
-  width:2rem; height:2rem; display:grid; place-items:center; font-weight:900;
+  display:grid; place-items:center; font-weight:900;
 }
-.podium-seat .crown{ width:100%; text-align:center; font-size: clamp(2.2rem,5.5vw,3rem); line-height:1 }
-.podium-seat .user{ font-weight:900; font-size: clamp(1.05rem, 3.2vw, 1.25rem) }
+.podium-seat .crown{ width:100%; text-align:center; font-size:clamp(2.2rem,5.5vw,3rem); line-height:1 }
+.podium-seat .user{ font-weight:900; font-size:clamp(1.05rem,3.2vw,1.25rem) }
 .podium-seat .label{ font-size:.73rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px }
 .podium-seat .wager{ font-size:1.05rem }
 .podium-seat .prize{ font-weight:900; color:var(--accent) }
-.podium-seat.col-first{ --lift:-16px; min-height:clamp(220px,28vw,260px); box-shadow:0 0 32px #ffd70033, var(--shadow); border-color:#ffd700 }
-.podium-seat.col-second{ --lift:-6px;  min-height:clamp(170px,24vw,210px); box-shadow:0 0 26px #c0c0c033, var(--shadow); border-color:#c0c0c0 }
-.podium-seat.col-third{ --lift:0px;   min-height:clamp(150px,22vw,196px); box-shadow:0 0 22px #cd7f3233, var(--shadow); border-color:#cd7f32 }
-.success-badge{ display:none !important } /* legacy badge hidden */
+.podium-seat.col-first{ --lift:-16px; min-height:clamp(220px,28vw,260px); box-shadow:0 0 32px #ffd70033, var(--shadow); border-color:var(--gold) }
+.podium-seat.col-second{ --lift:-6px;  min-height:clamp(170px,24vw,210px); box-shadow:0 0 26px #c0c0c033, var(--shadow); border-color:var(--silver) }
+.podium-seat.col-third{ --lift:0px;   min-height:clamp(150px,22vw,196px); box-shadow:0 0 22px #cd7f3233, var(--shadow); border-color:var(--bronze) }
+.success-badge{ display:none !important } /* legacy badge */
 
-/* Ranks 4–10 */
+/* Ranks 4–10 ============================================================== */
 .others{
-  --cols: 7;
-  display:grid; grid-template-columns: repeat(var(--cols), 1fr);
-  gap:.9rem;
+  --cols:7;
+  display:grid; grid-template-columns:repeat(var(--cols),1fr);
+  gap:.95rem;
 }
 .others li{
-  --hover:0px;
-  position:relative; list-style:none;
-  background: var(--surface-2);
-  border:1px solid var(--hair);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-  padding: 2.1rem .9rem 1rem;
-  height: 190px;
-  display:flex; flex-direction:column; align-items:center; gap:.25rem;
-  transform: translateY(var(--hover));
-  transition: transform var(--fast), box-shadow var(--fast), filter var(--fast);
+  --hover:0px; list-style:none; position:relative;
+  background:var(--surface-2); border:1px solid var(--hair); border-radius:12px;
+  box-shadow:var(--shadow-sm); padding:2.15rem .95rem 1.05rem;
+  display:flex; flex-direction:column; align-items:center; gap:.3rem; height:190px;
+  transform:translateY(var(--hover));
+  transition: transform var(--fast), filter var(--fast), box-shadow var(--fast);
 }
-.others li:hover{ --hover:-3px; filter:brightness(1.015); box-shadow: var(--shadow) }
+.others li:hover{ --hover:-3px; filter:brightness(1.015); box-shadow:var(--shadow) }
 .others .position{
-  position:absolute; top:10px; left:10px;
-  background:#000; color:#fff; border:2px solid #333; border-radius:999px;
-  padding:.1rem .5rem; font-weight:900;
+  position:absolute; top:10px; left:10px; padding:.1rem .55rem;
+  background:#000; color:#fff; border:2px solid #333; border-radius:999px; font-weight:900;
 }
 .others .username{ font-weight:900 }
 .others .label.emphasized{ font-size:.75rem; color:var(--accent); font-weight:900; text-transform:uppercase }
 .others .wager{ color:var(--muted) }
 .others .prize{ font-weight:900; color:var(--accent) }
 
-/* ===== Footer ============================================================ */
+/* Footer ================================================================== */
 .site-footer{
   border-top:1px solid var(--hair);
-  background:#121212;
-  padding: 2rem 0;
+  background:#121315;
+  padding:2rem 0;
 }
 .footer-grid{
-  display:grid; grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 1rem; align-items:start;
+  display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:1rem; align-items:start;
 }
-.footer-brand{ display:flex; gap:.8rem; align-items:center }
+.footer-brand{ display:flex; gap:.85rem; align-items:center }
 .footer-logo{ width:36px; height:36px }
-.footer-links{ display:grid; gap:.3rem; align-content:start }
-.footer-links a{ color:var(--muted); font-weight:800 }
+.footer-links{ display:grid; gap:.35rem; align-content:start }
+.footer-links a{ color:var(--muted); font-weight:900 }
 .footer-links a:hover{ color:var(--text) }
 .footer-meta{ text-align:right; color:var(--muted) }
-.footer-meta a{ color:var(--accent); font-weight:800 }
+.footer-meta a{ color:var(--accent); font-weight:900 }
 
-/* ===== Accessibility & Motion =========================================== */
+/* Utilities ============================================================== */
 @media (prefers-reduced-motion: reduce){
   .brand-logo{ animation:none }
   .btn, .podium-seat, .others li{ transition:none }
 }
-
-/* ===== Responsive ======================================================== */
-@media (max-width: 980px){
-  .footer-grid{ grid-template-columns: 1fr; text-align:center }
+@media (max-width:980px){
+  .footer-grid{ grid-template-columns:1fr; text-align:center }
   .footer-meta{ text-align:center }
 }
-@media (max-width: 900px){
-  .podium{ grid-template-columns: 1fr }      /* stack 1–3 vertically */
-  .others{ grid-template-columns: 1fr }      /* stack 4–10 vertically */
+@media (max-width:900px){
+  .podium{ grid-template-columns:1fr }  /* stack top 3 */
+  .others{ grid-template-columns:1fr }  /* stack 4–10 */
   .others li{ height:auto }
 }
