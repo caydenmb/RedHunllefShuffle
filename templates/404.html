@@ -1,43 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>404 — Page Not Found</title>
+  <meta charset="UTF-8" />
+  <title>404 – Page Not Found</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
-      --bg:#0e0e0f; --fg:#ececec; --muted:#ababab; --accent:#52ff33;
-      --ring: color-mix(in oklab, var(--accent) 32%, transparent);
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
-    body{
-      display:grid;place-items:center;padding:24px;
-      background:
-        radial-gradient(1000px 520px at 50% -20%, #1f1f1f 10%, transparent 60%),
-        linear-gradient(180deg, #111, #0e0e0f);
-      color:var(--fg);
-      font:16px/1.6 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    :root { --accent:#52ff33; --bg:#0f0f0f; --fg:#e1e1e1; --muted:#a1a1a1; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 600px at 80% -10%, #1f1f1f 10%, transparent 60%),
+                  linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      color:var(--fg); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       text-align:center;
     }
-    main{max-width:720px}
-    h1{font-weight:900;letter-spacing:-.02em;font-size:clamp(3rem,10vw,5.5rem);color:var(--accent)}
-    p{margin:1rem 0 1.6rem;color:var(--muted);font-size:1.125rem}
-    a{
-      display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
-      padding:.9rem 1.6rem;border-radius:999px;background:var(--accent);
-      color:#111;text-decoration:none;font-weight:900;
-      box-shadow:0 14px 42px rgba(82,255,51,.20);
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    a:hover{transform:translateY(-2px)}
-    a:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring),0 14px 46px rgba(82,255,51,.24)}
+    h1 { font-size: clamp(3rem, 10vw, 6rem); color:var(--accent); font-weight:900; letter-spacing:-.02em; }
+    p  { margin: 1rem 0 2rem; color:var(--muted); font-size:1.125rem; }
+    a  { display:inline-block; padding:.9rem 1.6rem; border-radius:999px; background:var(--accent); color:#111;
+         text-decoration:none; font-weight:800; box-shadow:0 8px 28px rgba(82,255,51,.2); transition: transform .15s ease; }
+    a:hover { transform: translateY(-2px); }
   </style>
 </head>
 <body>
   <main>
     <h1>404</h1>
-    <p>We couldn’t find that page.</p>
+    <p>Looks like you got lost in the wager race.</p>
     <a href="/">Return Home</a>
   </main>
 </body>
