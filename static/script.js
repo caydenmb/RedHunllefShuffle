@@ -13,7 +13,7 @@
   // Prize table
   const PRIZES = {
     1: '$1,300.00',
-    2: '$1000.00',
+    2: '$1,000.00',
     3: '$600.00',
     4: '$400.00',
     5: '$300.00',
@@ -217,6 +217,7 @@
 
   document.addEventListener('DOMContentLoaded', boot);
 })();
+
 
 
 
