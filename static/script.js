@@ -24,7 +24,7 @@
     10: '$25.00'
   };
 
-  /** Convert a currency string like "$5,000.00" to a number 5000.00 */
+  /** Convert a currency string to a number */
   function moneyToNumber(s) {
     if (typeof s === 'number') return s;
     if (!s) return 0;
@@ -32,12 +32,12 @@
     return isNaN(n) ? 0 : n;
   }
 
-  /** Format integer with commas (e.g., 12345 -> "12,345") */
+  /** Format integer with commas */
   function fmtInt(n) {
     return (n ?? 0).toLocaleString();
   }
 
-  /** Build the podium with 1st place in the MIDDLE (Olympic style) */
+  /** Podium with 1st place in the MIDDLE (Olympics style) */
   function buildPodium(podiumRaw) {
     // Normalize and sort by wager descending
     const norm = (podiumRaw || []).map(e => ({
@@ -76,7 +76,7 @@
     });
   }
 
-  /** Build placements 4–10. Prefer rank order; if absent, use wager DESC and assign ranks. */
+  /** Build placements 4–10. If absent, use wager DESC and assign ranks. */
   function buildOthers(othersRaw) {
     let others = (othersRaw || []).map(e => ({
       rank: typeof e?.rank === 'number' ? e.rank : null,
@@ -137,7 +137,7 @@
     }
   }
 
-  /** Live badge: “LIVE NOW!” + viewer count when available */
+  /** Live badge + viewer count when available */
   async function fetchStream() {
     if (!liveEl) return;
     try {

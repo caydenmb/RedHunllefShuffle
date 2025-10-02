@@ -89,7 +89,7 @@ app = Flask(__name__)
 CORS(app)
 
 # =========================================================
-# Config (kept same as original)
+# Config
 # =========================================================
 
 API_KEY = os.getenv("API_KEY", "f45f746d-b021-494d-b9b6-b47628ee5cc9")
@@ -209,7 +209,7 @@ def _fetch_from_shuffle() -> List[dict]:
         return data
 
 def _process_entries(entries: List[dict]) -> Dict[str, Any]:
-    # Keep only our referral campaign
+    # Keep only referral campaign
     filtered = [e for e in entries if e.get("campaignCode") == "Red"]
 
     def _w(e: dict) -> float:
@@ -254,7 +254,7 @@ def _refresh_cache() -> None:
         with _cache_lock:
             _data_cache.update(processed)
 
-        # snapshot (best-effort)
+        # snapshot
         try:
             with open("logs/latest_cache.json", "w", encoding="utf-8") as f:
                 json.dump(processed, f, indent=2)
@@ -437,7 +437,7 @@ def get_stream_status() -> Dict[str, Any]:
     return status
 
 # =========================================================
-# HTTP (same endpoints)
+# HTTP
 # =========================================================
 
 @app.before_request

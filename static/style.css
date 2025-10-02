@@ -139,7 +139,7 @@ a:hover{color:#a5bbff}
 .podium-seat .label{font-size:.73rem;color:var(--text-alt);text-transform:uppercase;letter-spacing:.4px;margin-top:.1rem}
 .podium-seat .wager{font-size:1.05rem;overflow-wrap:anywhere}
 .podium-seat .prize{font-weight:900;color:var(--accent)}
-.success-badge{display:none !important} /* hide old Champion/Runner-up/Third */
+.success-badge{display:none !important}
 
 /* ===== 4–10 row ===== */
 .others-inline{
@@ -147,8 +147,8 @@ a:hover{color:#a5bbff}
   display:grid;
   grid-template-columns:repeat(var(--others-count),1fr);
   gap:.9rem;
-  overflow:visible;         /* was hidden: now the hover lift won't clip */
-  padding-top:.2rem;        /* small cushion so upward hover never cuts */
+  overflow:visible;
+  padding-top:.2rem;
 }
 .others-inline li{
   --hover-lift: 0px;
@@ -167,8 +167,8 @@ a:hover{color:#a5bbff}
   cursor: default;
   transform: translateY(var(--hover-lift));
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-  overflow:visible;          /* was hidden: allow the lift to exceed the box */
-  will-change: transform;    /* smoother hover on low-end devices */
+  overflow:visible;
+  will-change: transform;
 }
 .others-inline li:hover{
   --hover-lift: -3px;                          /* subtle movement */
