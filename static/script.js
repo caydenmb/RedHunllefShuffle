@@ -10,7 +10,7 @@
   const dd = $('#dd'), hh = $('#hh'), mm = $('#mm'), ss = $('#ss');
   const yearOut = $('#year');
 
-  // Prize table displayed publicly (keep in sync with backend rules)
+  // Prize table
   const PRIZES = {
     1: '$1,300.00',
     2: '$1000.00',
@@ -217,5 +217,6 @@
 
   document.addEventListener('DOMContentLoaded', boot);
 })();
+
 
 
