@@ -12,16 +12,16 @@
 
   // Prize table displayed publicly (keep in sync with backend rules)
   const PRIZES = {
-    1: '$1,700.00',
-    2: '$900.00',
-    3: '$500.00',
-    4: '$300.00',
-    5: '$200.00',
+    1: '$1,300.00',
+    2: '$1000.00',
+    3: '$600.00',
+    4: '$400.00',
+    5: '$300.00',
     6: '$150.00',
     7: '$100.00',
     8: '$75.00',
-    9: '$50.00',
-    10: '$0.00'
+    9: '$25.00',
+    10: '$25.00'
   };
 
   /** Convert a currency string like "$5,000.00" to a number 5000.00 */
@@ -217,3 +217,4 @@
 
   document.addEventListener('DOMContentLoaded', boot);
 })();
+
