@@ -10,19 +10,20 @@
   const dd = $('#dd'), hh = $('#hh'), mm = $('#mm'), ss = $('#ss');
   const yearOut = $('#year');
 
-  // Prize table
-  const PRIZES = {
-    1: '$1,300.00',
-    2: '$1,000.00',
-    3: '$600.00',
-    4: '$400.00',
-    5: '$300.00',
-    6: '$150.00',
-    7: '$100.00',
-    8: '$75.00',
-    9: '$50.00',
-    10: '$25.00'
-  };
+// Prize table
+const PRIZES = {
+  1: '$650.00',
+  2: '$500.00',
+  3: '$300.00',
+  4: '$200.00',
+  5: '$150.00',
+  6: '$75.00',
+  7: '$50.00',
+  8: '$38.00',
+  9: '$25.00',
+  10: '$12.00'
+};
+
 
   /** Convert a currency string to a number */
   function moneyToNumber(s) {
@@ -217,6 +218,7 @@
 
   document.addEventListener('DOMContentLoaded', boot);
 })();
+
 
 
 
