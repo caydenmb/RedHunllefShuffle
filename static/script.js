@@ -21,7 +21,6 @@ const PRIZES = {
   6: '$75.00',
   7: '$50.00',
   8: '$40.00',
-  8: '$40.00',
   9: '$25.00',
   10: '$10.00'
 };
@@ -221,6 +220,7 @@ const PRIZES = {
 
   document.addEventListener('DOMContentLoaded', boot);
 })();
+
 
 
 
